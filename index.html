@@ -1154,7 +1154,7 @@
                 <button class="btn-primary" onclick="processQuickInput()">Add</button>
             </div>
             <div class="quick-input-help">
-                💡 Examples: "Team meeting every Monday 10am" • "Project deadline Friday" • "Call dentist tomorrow"
+                💡 Examples: "every Wed 2 to 2:30pm meeting with IBRA" • "Team meeting Mon 10am" • "Call dentist tomorrow"
             </div>
         </div>
 
@@ -1680,55 +1680,126 @@
             let type = 'task';
             if (lowerInput.includes('idea:') || lowerInput.includes('note:')) {
                 type = 'idea';
-            } else if (lowerInput.includes('meeting') || lowerInput.includes('appointment') || /\d{1,2}(am|pm|\s?:\s?\d{2})/.test(lowerInput)) {
+            } else if (lowerInput.includes('meeting') || lowerInput.includes('appointment') || /\d{1,2}\s?(:|to)?\s?\d{0,2}\s?(am|pm)/i.test(lowerInput)) {
                 type = 'event';
             }
 
-            // Extract title
+            // Extract title - we'll clean it up later after parsing everything
             let title = input.replace(/idea:|note:/gi, '').trim();
             
             // Extract date
             const today = new Date();
             let date = null;
+            let matchedDayName = null;
             
             if (lowerInput.includes('today')) {
                 date = new Date(today);
+                matchedDayName = 'today';
             } else if (lowerInput.includes('tomorrow')) {
                 date = new Date(today);
                 date.setDate(date.getDate() + 1);
+                matchedDayName = 'tomorrow';
             } else {
-                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                days.forEach((day, index) => {
-                    if (lowerInput.includes(day)) {
+                // Check for full day names and abbreviations
+                const days = [
+                    { full: 'sunday', abbr: 'sun', index: 0 },
+                    { full: 'monday', abbr: 'mon', index: 1 },
+                    { full: 'tuesday', abbr: 'tue', index: 2 },
+                    { full: 'wednesday', abbr: 'wed', index: 3 },
+                    { full: 'thursday', abbr: 'thu', index: 4 },
+                    { full: 'friday', abbr: 'fri', index: 5 },
+                    { full: 'saturday', abbr: 'sat', index: 6 }
+                ];
+                
+                days.forEach((day) => {
+                    if (lowerInput.includes(day.full)) {
                         date = new Date(today);
                         const currentDay = today.getDay();
-                        const targetDay = index;
+                        const targetDay = day.index;
                         const daysToAdd = targetDay >= currentDay ? targetDay - currentDay : 7 - currentDay + targetDay;
-                        date.setDate(date.getDate() + daysToAdd);
+                        if (daysToAdd === 0 && !lowerInput.includes('every')) {
+                            date.setDate(date.getDate() + 7); // Next week if same day and not recurring
+                        } else {
+                            date.setDate(date.getDate() + daysToAdd);
+                        }
+                        matchedDayName = day.full;
+                    } else if (lowerInput.includes(day.abbr) && !lowerInput.includes(day.full)) {
+                        date = new Date(today);
+                        const currentDay = today.getDay();
+                        const targetDay = day.index;
+                        const daysToAdd = targetDay >= currentDay ? targetDay - currentDay : 7 - currentDay + targetDay;
+                        if (daysToAdd === 0 && !lowerInput.includes('every')) {
+                            date.setDate(date.getDate() + 7);
+                        } else {
+                            date.setDate(date.getDate() + daysToAdd);
+                        }
+                        matchedDayName = day.abbr;
                     }
                 });
             }
 
-            // Extract time
+            // Extract time (handle both single time and time ranges)
             let time = null;
-            const timeMatch = input.match(/(\d{1,2})\s?(:?\s?(\d{2}))?\s?(am|pm)?/i);
-            if (timeMatch) {
-                let hours = parseInt(timeMatch[1]);
-                const minutes = timeMatch[3] ? parseInt(timeMatch[3]) : 0;
-                const period = timeMatch[4];
+            let endTime = null;
+            
+            // Try to match time range first (e.g., "2 to 2:30pm", "2-2:30pm", "2:00-2:30pm")
+            const timeRangeMatch = input.match(/(\d{1,2})\s?:?\s?(\d{2})?\s?(am|pm)?\s?(?:to|-|–)\s?(\d{1,2})\s?:?\s?(\d{2})\s?(am|pm)?/i);
+            if (timeRangeMatch) {
+                let startHours = parseInt(timeRangeMatch[1]);
+                const startMinutes = timeRangeMatch[2] ? parseInt(timeRangeMatch[2]) : 0;
+                const startPeriod = timeRangeMatch[3] || timeRangeMatch[6]; // Use end period if start not specified
                 
-                if (period && period.toLowerCase() === 'pm' && hours < 12) hours += 12;
-                if (period && period.toLowerCase() === 'am' && hours === 12) hours = 0;
+                let endHours = parseInt(timeRangeMatch[4]);
+                const endMinutes = parseInt(timeRangeMatch[5]);
+                const endPeriod = timeRangeMatch[6];
                 
-                time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                // Convert to 24-hour format
+                if (startPeriod) {
+                    if (startPeriod.toLowerCase() === 'pm' && startHours < 12) startHours += 12;
+                    if (startPeriod.toLowerCase() === 'am' && startHours === 12) startHours = 0;
+                }
+                if (endPeriod) {
+                    if (endPeriod.toLowerCase() === 'pm' && endHours < 12) endHours += 12;
+                    if (endPeriod.toLowerCase() === 'am' && endHours === 12) endHours = 0;
+                }
+                
+                time = `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
+                endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+            } else {
+                // Single time (e.g., "2pm", "14:00", "2:30pm")
+                const timeMatch = input.match(/(\d{1,2})\s?:?\s?(\d{2})?\s?(am|pm)?/i);
+                if (timeMatch) {
+                    let hours = parseInt(timeMatch[1]);
+                    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+                    const period = timeMatch[3];
+                    
+                    if (period) {
+                        if (period.toLowerCase() === 'pm' && hours < 12) hours += 12;
+                        if (period.toLowerCase() === 'am' && hours === 12) hours = 0;
+                    }
+                    
+                    time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
             }
 
             // Check for recurring
             const recurring = lowerInput.includes('every');
             
+            // Clean up title by removing parsed elements
+            let cleanTitle = title;
+            if (matchedDayName) {
+                cleanTitle = cleanTitle.replace(new RegExp(matchedDayName, 'gi'), '');
+            }
+            if (recurring) {
+                cleanTitle = cleanTitle.replace(/every/gi, '');
+            }
+            // Remove time patterns from title
+            cleanTitle = cleanTitle.replace(/\d{1,2}\s?:?\s?\d{0,2}\s?(am|pm)?(\s?(?:to|-|–)\s?\d{1,2}\s?:?\s?\d{2}\s?(am|pm)?)?/gi, '');
+            cleanTitle = cleanTitle.trim().replace(/\s+/g, ' '); // Normalize whitespace
+            
             const item = {
                 id: Date.now(),
-                title: title,
+                title: cleanTitle || title, // Fallback to original if cleaning removes everything
                 created: new Date().toISOString(),
                 category: guessCategory(lowerInput),
                 priority: guessPriority(lowerInput),
@@ -1738,6 +1809,9 @@
                 item.date = date ? date.toISOString().split('T')[0] : today.toISOString().split('T')[0];
                 if (time && type === 'event') {
                     item.time = time;
+                    if (endTime) {
+                        item.endTime = endTime;
+                    }
                 }
             }
 
@@ -1811,22 +1885,29 @@
             if (allItems.length === 0) {
                 timeline.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎉</div>No events or tasks today!</div>';
             } else {
-                timeline.innerHTML = allItems.map(item => `
-                    <div class="timeline-item" style="display: flex; justify-content: space-between; align-items: start;">
-                        <div style="flex: 1;">
-                            <div class="timeline-time">${item.time || 'All day'}</div>
-                            <div class="timeline-title">${item.title}</div>
-                            <div class="timeline-meta">
-                                <span class="item-tag">${item.category}</span>
-                                ${item.type === 'task' ? '<span class="item-tag">Task</span>' : ''}
+                timeline.innerHTML = allItems.map(item => {
+                    let timeDisplay = item.time || 'All day';
+                    if (item.time && item.endTime) {
+                        timeDisplay = `${item.time} - ${item.endTime}`;
+                    }
+                    
+                    return `
+                        <div class="timeline-item" style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div class="timeline-time">${timeDisplay}</div>
+                                <div class="timeline-title">${item.title}</div>
+                                <div class="timeline-meta">
+                                    <span class="item-tag">${item.category}</span>
+                                    ${item.type === 'task' ? '<span class="item-tag">Task</span>' : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                ${item.type === 'task' && !item.completed ? `<button class="item-btn complete" onclick="completeTask(${item.id})" style="padding: 4px 8px; font-size: 11px;">✓</button>` : ''}
+                                <button class="item-btn delete" onclick="deleteItem('${item.type || 'event'}', ${item.id})" style="padding: 4px 8px; font-size: 11px;">🗑️</button>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 5px;">
-                            ${item.type === 'task' && !item.completed ? `<button class="item-btn complete" onclick="completeTask(${item.id})" style="padding: 4px 8px; font-size: 11px;">✓</button>` : ''}
-                            <button class="item-btn delete" onclick="deleteItem('${item.type || 'event'}', ${item.id})" style="padding: 4px 8px; font-size: 11px;">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             // Render tasks
@@ -1984,13 +2065,22 @@
             // Ideas use 'text' field, others use 'title'
             const displayTitle = item.title || item.text || 'Untitled';
             
+            // Format time display with end time if available
+            let timeDisplay = '';
+            if (item.time) {
+                timeDisplay = item.time;
+                if (item.endTime) {
+                    timeDisplay += ` - ${item.endTime}`;
+                }
+            }
+            
             return `
                 <div class="item ${item.completed ? 'completed' : ''} priority-${item.priority || 'low'}">
                     <div class="item-content">
                         <div class="item-title">${displayTitle}</div>
                         <div class="item-meta">
                             ${dateStr ? `📅 ${dateStr}` : ''}
-                            ${item.time ? ` • 🕐 ${item.time}` : ''}
+                            ${timeDisplay ? ` • 🕐 ${timeDisplay}` : ''}
                             ${item.category ? `<span class="item-tag">${item.category}</span>` : ''}
                             ${item.type === 'idea' ? '<span class="item-tag">Idea</span>' : ''}
                             ${item.recurring ? '<span class="item-tag">🔁 Recurring</span>' : ''}
