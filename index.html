@@ -812,6 +812,31 @@
             color: #666;
         }
 
+        /* Quick Time Picker */
+        .time-quick-btn {
+            padding: 6px 12px;
+            background: var(--light);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--dark);
+            transition: all 0.2s ease;
+            flex: 0 0 auto;
+        }
+
+        .time-quick-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .time-quick-btn:active {
+            transform: translateY(0);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -1458,11 +1483,33 @@
                     <div class="form-group" id="timeGroup">
                         <label>Start Time</label>
                         <input type="time" id="itemTime" />
+                        <div class="quick-time-picker" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('09:00')">9 AM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('10:00')">10 AM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('11:00')">11 AM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('12:00')">12 PM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('13:00')">1 PM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('14:00')">2 PM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('15:00')">3 PM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('16:00')">4 PM</button>
+                            <button type="button" class="time-quick-btn" onclick="setQuickTime('17:00')">5 PM</button>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" id="endTimeGroup" style="display: none;">
                     <label>End Time (optional)</label>
                     <input type="time" id="itemEndTime" />
+                    <div class="quick-time-picker" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('10:00')">10 AM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('11:00')">11 AM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('12:00')">12 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('13:00')">1 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('14:00')">2 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('15:00')">3 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('16:00')">4 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('17:00')">5 PM</button>
+                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('18:00')">6 PM</button>
+                    </div>
                 </div>
                 <div class="form-group" id="descriptionGroup">
                     <label>Description</label>
@@ -2385,6 +2432,22 @@
         function toggleRecurringOptions() {
             const checked = document.getElementById('itemRecurring').checked;
             document.getElementById('recurringOptions').style.display = checked ? 'block' : 'none';
+        }
+
+        // Quick time selection
+        function setQuickTime(time) {
+            document.getElementById('itemTime').value = time;
+            // Auto-set end time to 1 hour later if empty
+            const endTimeInput = document.getElementById('itemEndTime');
+            if (!endTimeInput.value) {
+                const [hours, minutes] = time.split(':');
+                const endHour = (parseInt(hours) + 1).toString().padStart(2, '0');
+                endTimeInput.value = `${endHour}:${minutes}`;
+            }
+        }
+
+        function setQuickEndTime(time) {
+            document.getElementById('itemEndTime').value = time;
         }
 
         function handleFormSubmit(e) {
