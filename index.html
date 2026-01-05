@@ -1415,9 +1415,13 @@
                         <input type="date" id="itemDate" />
                     </div>
                     <div class="form-group" id="timeGroup">
-                        <label>Time</label>
+                        <label>Start Time</label>
                         <input type="time" id="itemTime" />
                     </div>
+                </div>
+                <div class="form-group" id="endTimeGroup" style="display: none;">
+                    <label>End Time (optional)</label>
+                    <input type="time" id="itemEndTime" />
                 </div>
                 <div class="form-group" id="descriptionGroup">
                     <label>Description</label>
@@ -1660,17 +1664,39 @@
 
             const parsed = parseNaturalInput(input);
             
-            if (parsed.type === 'event') {
-                data.events.push(parsed);
-            } else if (parsed.type === 'task') {
-                data.tasks.push(parsed);
-            } else if (parsed.type === 'idea') {
-                data.ideas.push(parsed);
-            }
+            // Show confirmation with parsed details before adding
+            const dateStr = parsed.date ? new Date(parsed.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : 'No date';
+            const timeStr = parsed.time ? (parsed.endTime ? `${parsed.time} - ${parsed.endTime}` : parsed.time) : 'No time';
+            const recurStr = parsed.recurring ? ' (Recurring weekly)' : '';
+            
+            const confirmMsg = `${parsed.type.toUpperCase()}: "${parsed.title}"\n📅 ${dateStr}\n🕐 ${timeStr}${recurStr}\n\nAdd this item?`;
+            
+            if (confirm(confirmMsg)) {
+                if (parsed.type === 'event') {
+                    data.events.push(parsed);
+                } else if (parsed.type === 'task') {
+                    data.tasks.push(parsed);
+                } else if (parsed.type === 'idea') {
+                    data.ideas.push(parsed);
+                }
 
-            saveData();
-            document.getElementById('quickInput').value = '';
-            showToast(`${parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1)} added!`);
+                saveData();
+                document.getElementById('quickInput').value = '';
+                renderAll();
+                showToast(`${parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1)} added!`);
+            } else {
+                // User cancelled - open the modal to edit
+                openAddModal();
+                // Pre-fill the form with parsed data
+                document.getElementById('itemTitle').value = parsed.title || input;
+                document.getElementById('itemType').value = parsed.type;
+                if (parsed.date) document.getElementById('itemDate').value = parsed.date;
+                if (parsed.time) document.getElementById('itemTime').value = parsed.time;
+                if (parsed.endTime) document.getElementById('itemEndTime').value = parsed.endTime;
+                if (parsed.category) document.getElementById('itemCategory').value = parsed.category;
+                if (parsed.priority) document.getElementById('itemPriority').value = parsed.priority;
+                document.getElementById('quickInput').value = '';
+            }
         }
 
         function parseNaturalInput(input) {
@@ -1711,31 +1737,32 @@
                     { full: 'saturday', abbr: 'sat', index: 6 }
                 ];
                 
-                days.forEach((day) => {
-                    if (lowerInput.includes(day.full)) {
+                // Check full names first, then abbreviations
+                for (const day of days) {
+                    const foundFull = lowerInput.includes(day.full);
+                    const foundAbbr = lowerInput.includes(day.abbr);
+                    
+                    if (foundFull || foundAbbr) {
                         date = new Date(today);
                         const currentDay = today.getDay();
                         const targetDay = day.index;
-                        const daysToAdd = targetDay >= currentDay ? targetDay - currentDay : 7 - currentDay + targetDay;
-                        if (daysToAdd === 0 && !lowerInput.includes('every')) {
-                            date.setDate(date.getDate() + 7); // Next week if same day and not recurring
-                        } else {
-                            date.setDate(date.getDate() + daysToAdd);
+                        let daysToAdd = targetDay - currentDay;
+                        
+                        // If target day is before current day or same day, go to next week
+                        if (daysToAdd <= 0) {
+                            daysToAdd += 7;
                         }
-                        matchedDayName = day.full;
-                    } else if (lowerInput.includes(day.abbr) && !lowerInput.includes(day.full)) {
-                        date = new Date(today);
-                        const currentDay = today.getDay();
-                        const targetDay = day.index;
-                        const daysToAdd = targetDay >= currentDay ? targetDay - currentDay : 7 - currentDay + targetDay;
-                        if (daysToAdd === 0 && !lowerInput.includes('every')) {
-                            date.setDate(date.getDate() + 7);
-                        } else {
-                            date.setDate(date.getDate() + daysToAdd);
+                        
+                        // Exception: if it's "every [day]" and today is that day, start today
+                        if (daysToAdd === 7 && lowerInput.includes('every')) {
+                            daysToAdd = 0;
                         }
-                        matchedDayName = day.abbr;
+                        
+                        date.setDate(date.getDate() + daysToAdd);
+                        matchedDayName = foundFull ? day.full : day.abbr;
+                        break; // Stop after first match
                     }
-                });
+                }
             }
 
             // Extract time (handle both single time and time ranges)
@@ -2299,6 +2326,7 @@
         function updateFormFields() {
             const type = document.getElementById('itemType').value;
             document.getElementById('timeGroup').style.display = type === 'event' ? 'block' : 'none';
+            document.getElementById('endTimeGroup').style.display = type === 'event' ? 'block' : 'none';
             document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
             document.getElementById('recurringGroup').style.display = type === 'event' ? 'block' : 'none';
         }
@@ -2324,6 +2352,10 @@
                 item.date = document.getElementById('itemDate').value;
                 if (type === 'event') {
                     item.time = document.getElementById('itemTime').value;
+                    const endTime = document.getElementById('itemEndTime').value;
+                    if (endTime) {
+                        item.endTime = endTime;
+                    }
                 }
             }
 
