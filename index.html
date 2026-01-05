@@ -813,28 +813,73 @@
         }
 
         /* Quick Time Picker */
-        .time-quick-btn {
-            padding: 6px 12px;
+        .time-picker-dropdown {
+            margin-top: 10px;
+            padding: 16px;
             background: var(--light);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .time-picker-grid {
+            display: flex;
+            gap: 16px;
+        }
+
+        .time-picker-section {
+            flex: 1;
+        }
+
+        .time-picker-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--dark-gray);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .time-picker-hours {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .time-picker-minutes {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .time-pick-btn {
+            padding: 10px;
+            background: var(--medium-gray);
             border: 2px solid var(--border);
             border-radius: var(--radius-sm);
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 600;
             color: var(--dark);
             transition: all 0.2s ease;
-            flex: 0 0 auto;
+            text-align: center;
         }
 
-        .time-quick-btn:hover {
+        .time-pick-btn:hover {
             background: var(--primary);
             color: white;
             border-color: var(--primary);
-            transform: translateY(-1px);
+            transform: scale(1.05);
         }
 
-        .time-quick-btn:active {
-            transform: translateY(0);
+        .time-pick-btn:active {
+            transform: scale(0.98);
+        }
+
+        .time-pick-btn.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
 
         .modal {
@@ -1482,33 +1527,95 @@
                     </div>
                     <div class="form-group" id="timeGroup">
                         <label>Start Time</label>
-                        <input type="time" id="itemTime" />
-                        <div class="quick-time-picker" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('09:00')">9 AM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('10:00')">10 AM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('11:00')">11 AM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('12:00')">12 PM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('13:00')">1 PM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('14:00')">2 PM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('15:00')">3 PM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('16:00')">4 PM</button>
-                            <button type="button" class="time-quick-btn" onclick="setQuickTime('17:00')">5 PM</button>
+                        <input type="time" id="itemTime" readonly style="cursor: pointer;" onclick="toggleTimePicker('start')" placeholder="Click to select" />
+                        <div id="startTimePicker" class="time-picker-dropdown" style="display: none;">
+                            <div class="time-picker-grid">
+                                <div class="time-picker-section">
+                                    <div class="time-picker-label">Hour</div>
+                                    <div class="time-picker-hours">
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '00', null)">00</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '01', null)">01</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '02', null)">02</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '03', null)">03</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '04', null)">04</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '05', null)">05</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '06', null)">06</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '07', null)">07</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '08', null)">08</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '09', null)">09</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '10', null)">10</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '11', null)">11</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '12', null)">12</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '13', null)">13</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '14', null)">14</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '15', null)">15</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '16', null)">16</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '17', null)">17</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '18', null)">18</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '19', null)">19</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '20', null)">20</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '21', null)">21</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '22', null)">22</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '23', null)">23</button>
+                                    </div>
+                                </div>
+                                <div class="time-picker-section">
+                                    <div class="time-picker-label">Minute</div>
+                                    <div class="time-picker-minutes">
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '00')">00</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '15')">15</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '30')">30</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '45')">45</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="form-group" id="endTimeGroup" style="display: none;">
                     <label>End Time (optional)</label>
-                    <input type="time" id="itemEndTime" />
-                    <div class="quick-time-picker" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('10:00')">10 AM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('11:00')">11 AM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('12:00')">12 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('13:00')">1 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('14:00')">2 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('15:00')">3 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('16:00')">4 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('17:00')">5 PM</button>
-                        <button type="button" class="time-quick-btn" onclick="setQuickEndTime('18:00')">6 PM</button>
+                    <input type="time" id="itemEndTime" readonly style="cursor: pointer;" onclick="toggleTimePicker('end')" placeholder="Click to select" />
+                    <div id="endTimePicker" class="time-picker-dropdown" style="display: none;">
+                        <div class="time-picker-grid">
+                            <div class="time-picker-section">
+                                <div class="time-picker-label">Hour</div>
+                                <div class="time-picker-hours">
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '00', null)">00</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '01', null)">01</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '02', null)">02</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '03', null)">03</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '04', null)">04</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '05', null)">05</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '06', null)">06</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '07', null)">07</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '08', null)">08</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '09', null)">09</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '10', null)">10</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '11', null)">11</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '12', null)">12</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '13', null)">13</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '14', null)">14</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '15', null)">15</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '16', null)">16</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '17', null)">17</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '18', null)">18</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '19', null)">19</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '20', null)">20</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '21', null)">21</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '22', null)">22</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '23', null)">23</button>
+                                </div>
+                            </div>
+                            <div class="time-picker-section">
+                                <div class="time-picker-label">Minute</div>
+                                <div class="time-picker-minutes">
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '00')">00</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '15')">15</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '30')">30</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '45')">45</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" id="descriptionGroup">
@@ -2434,20 +2541,34 @@
             document.getElementById('recurringOptions').style.display = checked ? 'block' : 'none';
         }
 
-        // Quick time selection
-        function setQuickTime(time) {
-            document.getElementById('itemTime').value = time;
-            // Auto-set end time to 1 hour later if empty
-            const endTimeInput = document.getElementById('itemEndTime');
-            if (!endTimeInput.value) {
-                const [hours, minutes] = time.split(':');
-                const endHour = (parseInt(hours) + 1).toString().padStart(2, '0');
-                endTimeInput.value = `${endHour}:${minutes}`;
-            }
+        // Time picker state
+        let selectedStartHour = '09';
+        let selectedStartMinute = '00';
+        let selectedEndHour = '10';
+        let selectedEndMinute = '00';
+
+        function toggleTimePicker(type) {
+            const pickerId = type === 'start' ? 'startTimePicker' : 'endTimePicker';
+            const otherPickerId = type === 'start' ? 'endTimePicker' : 'startTimePicker';
+            
+            // Close other picker
+            document.getElementById(otherPickerId).style.display = 'none';
+            
+            // Toggle this picker
+            const picker = document.getElementById(pickerId);
+            picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
         }
 
-        function setQuickEndTime(time) {
-            document.getElementById('itemEndTime').value = time;
+        function selectTime(type, hour, minute) {
+            if (type === 'start') {
+                if (hour !== null) selectedStartHour = hour;
+                if (minute !== null) selectedStartMinute = minute;
+                document.getElementById('itemTime').value = `${selectedStartHour}:${selectedStartMinute}`;
+            } else {
+                if (hour !== null) selectedEndHour = hour;
+                if (minute !== null) selectedEndMinute = minute;
+                document.getElementById('itemEndTime').value = `${selectedEndHour}:${selectedEndMinute}`;
+            }
         }
 
         function handleFormSubmit(e) {
