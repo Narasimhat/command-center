@@ -2,8 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Universal task management app for calendar, to-do lists, planning, reminders, and ideas. Works on desktop and mobile.">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Command Center">
+    <link rel="manifest" href="/manifest.json">
     <title>Command Center Pro</title>
+
+    <!-- Firebase SDKs (Optional) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <!-- Supabase SDK (Alternative to Firebase) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --primary: #6366f1;
@@ -164,6 +179,44 @@
             color: var(--primary);
             transform: translateY(-1px);
             box-shadow: var(--shadow-md);
+        }
+
+        /* Sync Status Indicator */
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--dark-gray);
+        }
+
+        .sync-status.synced {
+            color: var(--success);
+            border-color: var(--success);
+            background: var(--success-light);
+        }
+
+        .sync-status.syncing {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: var(--primary-light);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .sync-status.error {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: var(--danger-light);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .quick-input {
@@ -416,10 +469,302 @@
             flex-wrap: wrap;
         }
 
+        /* Google Calendar / Outlook Style Week View */
         .week-calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--light);
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .week-time-slot {
+            height: 48px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: flex-start;
+            padding-top: 2px;
+            padding-right: 8px;
+            justify-content: flex-end;
+        }
+
+        .week-time-slot-label {
+            font-size: 11px;
+            color: var(--dark-gray);
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .week-day-column {
+            border-right: 1px solid var(--border-light);
+            position: relative;
+            background: var(--light);
+        }
+
+        .week-day-column:last-child {
+            border-right: none;
+        }
+
+        .week-day-header {
+            background: var(--light-gray);
+            border-bottom: 2px solid var(--border);
+            padding: 12px 8px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 15;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .week-day-header:hover {
+            background: var(--medium-gray);
+        }
+
+        .week-day-header.today {
+            background: var(--primary);
+            color: white;
+        }
+
+        .week-day-header.today:hover {
+            background: var(--primary-dark);
+        }
+
+        .week-day-name {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .week-day-number {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .week-day-slots {
+            position: relative;
+            min-height: calc(48px * 24); /* Full 24 hours * 2 for 30-min slots */
+        }
+
+        .week-time-slot-cell {
+            height: 24px; /* 30-minute slots */
+            position: relative;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .week-time-slot-cell.hour-boundary {
+            border-top: 1px solid var(--border);
+        }
+
+        .week-time-slot-cell.half-hour {
+            border-top: 1px dashed var(--border-light);
+        }
+
+        .week-time-slot-cell.work-hours {
+            background: rgba(99, 102, 241, 0.02);
+        }
+
+        .week-time-slot-cell:hover {
+            background: var(--primary-light);
+        }
+
+        .week-time-slot-cell:last-child {
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Event blocks - Google Calendar style */
+        .calendar-event-block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+            border-left: 3px solid;
+            transition: all 0.2s;
+            z-index: 2;
+            line-height: 1.3;
+        }
+
+        .calendar-event-block:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 5;
+            transform: translateX(2px);
+        }
+
+        .calendar-event-block.dragging {
+            opacity: 0.6;
+            z-index: 1000;
+            transform: scale(1.05);
+        }
+
+        .event-block-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-block-time {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+
+        /* Category Colors - Google Calendar style */
+        .event-category-work { 
+            background: #4285f4; 
+            color: white; 
+            border-left-color: #1a73e8;
+        }
+        .event-category-personal { 
+            background: #34a853; 
+            color: white; 
+            border-left-color: #137333;
+        }
+        .event-category-health { 
+            background: #ea4335; 
+            color: white; 
+            border-left-color: #c5221f;
+        }
+        .event-category-research { 
+            background: #9c27b0; 
+            color: white; 
+            border-left-color: #7b1fa2;
+        }
+        .event-category-meeting { 
+            background: #fb8c00; 
+            color: white; 
+            border-left-color: #e65100;
+        }
+        .event-category-other {
+            background: #5f6368;
+            color: white;
+            border-left-color: #3c4043;
+        }
+
+        /* Event Resize Handles */
+        .event-resize-handle {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            cursor: ns-resize;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .calendar-event-block:hover .event-resize-handle {
+            opacity: 1;
+        }
+
+        .event-resize-top {
+            top: 0;
+            border-top: 2px solid var(--primary);
+        }
+
+        .event-resize-bottom {
+            bottom: 0;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .calendar-event-block.resizing {
+            opacity: 0.8;
+            z-index: 1000;
+        }
+
+        /* Conflict Indicator */
+        .calendar-event-block.has-conflict {
+            border: 2px solid var(--danger) !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .conflict-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            z-index: 5;
+        }
+
+        /* Context Menu */
+        .event-context-menu {
+            position: fixed;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            padding: 4px;
+            min-width: 180px;
+            z-index: 10000;
+            animation: contextMenuFadeIn 0.15s ease;
+        }
+
+        @keyframes contextMenuFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.15s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-menu-item:hover {
+            background: var(--medium-gray);
+        }
+
+        .context-menu-item.danger {
+            color: var(--danger);
+        }
+
+        .context-menu-item.danger:hover {
+            background: var(--danger-light);
+        }
+
+        /* Month View Enhancements */
+        .month-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
         }
 
         .day-card {
@@ -508,19 +853,17 @@
         }
 
         .month-day {
-            aspect-ratio: 1;
+            min-height: 100px;
             padding: 8px;
             background: var(--light);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
+            border: 1px solid var(--border-light);
             cursor: pointer;
             transition: all 0.2s ease;
+            position: relative;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
         }
 
         .month-day:hover {
@@ -548,6 +891,171 @@
 
         .month-day.other-month {
             opacity: 0.3;
+            background: var(--light-gray);
+        }
+
+        .month-day-number {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .month-day-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 4px;
+        }
+
+        .month-day-event {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 2px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            border-left: 3px solid;
+        }
+
+        .month-day-event:hover {
+            opacity: 0.8;
+        }
+
+        /* Event Details Popup */
+        .event-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            z-index: 2000;
+            border: 1px solid var(--border);
+        }
+
+        .event-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+
+        .event-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .event-popup-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .event-popup-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--dark-gray);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+
+        .event-popup-close:hover {
+            background: var(--medium-gray);
+            color: var(--dark);
+        }
+
+        .event-popup-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .event-popup-field {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .event-popup-label {
+            font-weight: 600;
+            color: var(--dark-gray);
+            min-width: 80px;
+            font-size: 14px;
+        }
+
+        .event-popup-value {
+            color: var(--dark);
+            font-size: 14px;
+        }
+
+        /* Quick Time Presets */
+        .time-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .time-preset-btn {
+            padding: 6px 12px;
+            background: var(--medium-gray);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .time-preset-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Duration Presets */
+        .duration-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .duration-preset-btn {
+            padding: 6px 12px;
+            background: var(--medium-gray);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .duration-preset-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
         }
 
         .item-list {
@@ -821,6 +1329,7 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
         }
+
 
         .time-picker-grid {
             display: flex;
@@ -1210,22 +1719,289 @@
             }
         }
 
+        /* Mobile Bottom Navigation */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--light);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+        }
+
+        .mobile-nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .mobile-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            cursor: pointer;
+            color: var(--dark-gray);
+            text-decoration: none;
+            transition: all 0.2s;
+            min-height: 48px;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--primary);
+        }
+
+        .mobile-nav-item-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .mobile-nav-item-label {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Mobile Optimizations */
         @media (max-width: 768px) {
+            body {
+                padding-bottom: 70px; /* Space for bottom nav */
+            }
+
+            .container {
+                padding: 16px;
+            }
+
             .header {
                 flex-direction: column;
                 align-items: flex-start;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .header-left h1 {
+                font-size: 24px;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 12px;
+            }
+
+            .view-selector {
+                flex: 1;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .view-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                white-space: nowrap;
+                min-width: 60px;
+            }
+
+            .icon-btn {
+                padding: 10px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .quick-input {
+                padding: 20px;
+                margin-bottom: 16px;
             }
 
             .quick-input-group {
                 flex-direction: column;
+                gap: 12px;
+            }
+
+            .quick-input input {
+                padding: 14px 16px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .btn-primary {
+                padding: 14px 24px;
+                font-size: 16px;
+                min-height: 48px;
+                width: 100%;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .sidebar {
+                order: -1;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: var(--radius);
+            }
+
+            .card-header h2 {
+                font-size: 18px;
             }
 
             .today-view {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .today-section {
+                padding: 16px;
+            }
+
+            .today-section .count {
+                font-size: 32px;
+            }
+
+            .timeline {
+                padding-left: 30px;
+            }
+
+            .timeline-item {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .item-list {
+                gap: 12px;
+            }
+
+            .item-card {
+                padding: 14px;
             }
 
             .form-row {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                padding: 12px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                min-height: 44px;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+                margin: 5vh auto;
+                padding: 20px;
+            }
+
+            .mobile-nav {
+                display: block;
+            }
+
+            /* Hide desktop sidebar on mobile */
+            .sidebar {
+                display: none;
+            }
+
+            /* Touch-friendly buttons */
+            button, .btn-sm, .icon-btn, .view-btn {
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+            }
+
+            /* Better spacing for mobile */
+            .week-calendar {
+                grid-template-columns: 50px repeat(7, 1fr);
+                max-height: calc(100vh - 200px);
+            }
+
+            .week-time-slot-label {
+                font-size: 10px;
+            }
+
+            .week-day-header {
+                padding: 8px 4px;
+            }
+
+            .week-day-name {
+                font-size: 10px;
+            }
+
+            .week-day-number {
+                font-size: 16px;
+            }
+
+            .calendar-event-block {
+                font-size: 11px;
+                padding: 3px 4px;
+            }
+
+            .event-block-title {
+                font-size: 11px;
+            }
+
+            .event-block-time {
+                font-size: 9px;
+            }
+
+            .day-card {
+                padding: 8px 4px;
+                min-height: 80px;
+            }
+
+            .day-num {
+                font-size: 18px;
+            }
+
+            .day-name {
+                font-size: 10px;
+            }
+
+            /* Swipe gestures hint */
+            .swipe-hint {
+                display: block;
+                text-align: center;
+                color: var(--dark-gray);
+                font-size: 12px;
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header-left h1 {
+                font-size: 20px;
+            }
+
+            .view-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+        }
+
+        /* Safe area for notched devices */
+        @supports (padding: max(0px)) {
+            .mobile-nav {
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
             }
         }
     </style>
@@ -1245,9 +2021,17 @@
                     <button class="view-btn" onclick="switchView('month')">Month</button>
                     <button class="view-btn" onclick="switchView('list')">List</button>
                 </div>
+                <!-- Sync Status -->
+                <div id="syncStatus" class="sync-status" title="Sync status">
+                    <span id="syncIcon">☁️</span>
+                    <span id="syncText">Local</span>
+                </div>
+                <!-- Auth Button -->
+                <button class="icon-btn" id="authBtn" onclick="toggleAuth()" title="Sign in for cloud sync">👤</button>
                 <button class="icon-btn" onclick="toggleCompactMode()" title="Toggle Compact Mode">📐</button>
                 <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
                 <button class="icon-btn" onclick="exportData()" title="Export Data">📤</button>
+                <button class="icon-btn" onclick="importData()" title="Import Data">📥</button>
                 <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
             </div>
         </div>
@@ -1344,6 +2128,34 @@
                     <div class="card">
                         <div class="card-header collapsible-header" onclick="toggleSection(this)">
                             <span class="collapse-icon">▼</span>
+                            <h2>🔔 Reminders</h2>
+                            <button class="btn-sm" onclick="openAddModal(null, 'reminder'); event.stopPropagation();">+ Add</button>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="remindersList"></div>
+                            <div class="show-more-container" id="remindersListShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('remindersList', this)">Show More</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
+                            <h2>📋 Planning & Goals</h2>
+                            <button class="btn-sm" onclick="openAddModal(null, 'planning'); event.stopPropagation();">+ Add</button>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="planningList"></div>
+                            <div class="show-more-container" id="planningListShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('planningList', this)">Show More</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
                             <h2>💡 Ideas & Notes</h2>
                         </div>
                         <div class="collapsible-content">
@@ -1359,7 +2171,7 @@
                 <div id="weekView" class="view-content" style="display: none;">
                     <div class="card">
                         <div class="card-header">
-                            <h2>📅 This Week</h2>
+                            <h2>📅 <span id="weekTitle">This Week</span></h2>
                             <div class="card-actions">
                                 <button class="btn-sm" onclick="previousWeek()">←</button>
                                 <button class="btn-sm" onclick="goToCurrentWeek()">Today</button>
@@ -1367,7 +2179,7 @@
                             </div>
                         </div>
                         <div style="text-align: center; color: var(--dark-gray); font-size: 13px; margin-bottom: 12px;">
-                            👆 Click any day to add an event or task
+                            👆 Click any day to add an event | Double-click a time slot for quick add
                         </div>
                         <div class="week-calendar" id="weekCalendar"></div>
                     </div>
@@ -1513,6 +2325,8 @@
                     <select id="itemType" onchange="updateFormFields()">
                         <option value="event">Event</option>
                         <option value="task">Task</option>
+                        <option value="reminder">Reminder</option>
+                        <option value="planning">Planning/Goal</option>
                         <option value="idea">Idea/Note</option>
                     </select>
                 </div>
@@ -1527,95 +2341,40 @@
                     </div>
                     <div class="form-group" id="timeGroup">
                         <label>Start Time</label>
-                        <input type="time" id="itemTime" readonly style="cursor: pointer;" onclick="toggleTimePicker('start')" placeholder="Click to select" />
+                        <input type="time" id="itemTime" placeholder="Select time" />
+                        <div class="time-presets">
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('08:00')">8 AM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('09:00')">9 AM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('10:00')">10 AM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('11:00')">11 AM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('12:00')">12 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('13:00')">1 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('14:00')">2 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('15:00')">3 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('16:00')">4 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('17:00')">5 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('18:00')">6 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('19:00')">7 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('20:00')">8 PM</button>
+                            <button type="button" class="time-preset-btn" onclick="setQuickTime('21:00')">9 PM</button>
+                        </div>
                         <div id="startTimePicker" class="time-picker-dropdown" style="display: none;">
-                            <div class="time-picker-grid">
-                                <div class="time-picker-section">
-                                    <div class="time-picker-label">Hour</div>
-                                    <div class="time-picker-hours">
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '00', null)">00</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '01', null)">01</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '02', null)">02</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '03', null)">03</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '04', null)">04</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '05', null)">05</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '06', null)">06</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '07', null)">07</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '08', null)">08</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '09', null)">09</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '10', null)">10</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '11', null)">11</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '12', null)">12</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '13', null)">13</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '14', null)">14</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '15', null)">15</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '16', null)">16</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '17', null)">17</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '18', null)">18</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '19', null)">19</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '20', null)">20</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '21', null)">21</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '22', null)">22</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '23', null)">23</button>
-                                    </div>
-                                </div>
-                                <div class="time-picker-section">
-                                    <div class="time-picker-label">Minute</div>
-                                    <div class="time-picker-minutes">
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '00')">00</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '15')">15</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '30')">30</button>
-                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '45')">45</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Time picker removed - use presets or type directly -->
                         </div>
                     </div>
                 </div>
                 <div class="form-group" id="endTimeGroup" style="display: none;">
                     <label>End Time (optional)</label>
-                    <input type="time" id="itemEndTime" readonly style="cursor: pointer;" onclick="toggleTimePicker('end')" placeholder="Click to select" />
+                    <input type="time" id="itemEndTime" placeholder="Select end time" />
+                    <div class="duration-presets">
+                        <button type="button" class="duration-preset-btn" onclick="setQuickDuration(15)">15 min</button>
+                        <button type="button" class="duration-preset-btn" onclick="setQuickDuration(30)">30 min</button>
+                        <button type="button" class="duration-preset-btn" onclick="setQuickDuration(60)">1 hour</button>
+                        <button type="button" class="duration-preset-btn" onclick="setQuickDuration(90)">1.5 hours</button>
+                        <button type="button" class="duration-preset-btn" onclick="setQuickDuration(120)">2 hours</button>
+                    </div>
                     <div id="endTimePicker" class="time-picker-dropdown" style="display: none;">
-                        <div class="time-picker-grid">
-                            <div class="time-picker-section">
-                                <div class="time-picker-label">Hour</div>
-                                <div class="time-picker-hours">
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '00', null)">00</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '01', null)">01</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '02', null)">02</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '03', null)">03</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '04', null)">04</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '05', null)">05</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '06', null)">06</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '07', null)">07</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '08', null)">08</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '09', null)">09</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '10', null)">10</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '11', null)">11</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '12', null)">12</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '13', null)">13</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '14', null)">14</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '15', null)">15</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '16', null)">16</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '17', null)">17</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '18', null)">18</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '19', null)">19</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '20', null)">20</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '21', null)">21</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '22', null)">22</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '23', null)">23</button>
-                                </div>
-                            </div>
-                            <div class="time-picker-section">
-                                <div class="time-picker-label">Minute</div>
-                                <div class="time-picker-minutes">
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '00')">00</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '15')">15</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '30')">30</button>
-                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '45')">45</button>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Time picker removed - use presets or type directly -->
                     </div>
                 </div>
                 <div class="form-group" id="descriptionGroup">
@@ -1641,6 +2400,47 @@
                         <option value="high">High</option>
                     </select>
                 </div>
+
+                <!-- Outlook-like Fields (Event Only) -->
+                <div class="form-group" id="locationGroup" style="display: none;">
+                    <label>Location</label>
+                    <input type="text" id="itemLocation" placeholder="Add location" />
+                </div>
+                <div class="form-group" id="attendeesGroup" style="display: none;">
+                    <label>Attendees</label>
+                    <input type="text" id="itemAttendees" placeholder="Email addresses (comma-separated)" />
+                </div>
+                <div class="form-group" id="calendarGroup" style="display: none;">
+                    <label>Calendar</label>
+                    <select id="itemCalendar">
+                        <option value="default">My Calendar</option>
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                        <option value="shared">Shared</option>
+                    </select>
+                </div>
+                <div class="form-group" id="statusGroup" style="display: none;">
+                    <label>Status</label>
+                    <select id="itemStatus">
+                        <option value="confirmed">Confirmed</option>
+                        <option value="tentative">Tentative</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group" id="visibilityGroup" style="display: none;">
+                    <label>Show As</label>
+                    <select id="itemVisibility">
+                        <option value="busy">Busy</option>
+                        <option value="free">Free</option>
+                        <option value="tentative">Tentative</option>
+                        <option value="out-of-office">Out of Office</option>
+                    </select>
+                </div>
+                <div class="form-group" id="colorGroup" style="display: none;">
+                    <label>Custom Color</label>
+                    <input type="color" id="itemColor" />
+                </div>
+
                 <div class="form-group" id="recurringGroup">
                     <label>
                         <input type="checkbox" id="itemRecurring" onchange="toggleRecurringOptions()" />
@@ -1674,19 +2474,453 @@
         </div>
     </div>
 
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <div class="mobile-nav-items">
+            <div class="mobile-nav-item active" onclick="switchViewMobile('today')">
+                <div class="mobile-nav-item-icon">📅</div>
+                <div class="mobile-nav-item-label">Today</div>
+            </div>
+            <div class="mobile-nav-item" onclick="switchViewMobile('week')">
+                <div class="mobile-nav-item-icon">📆</div>
+                <div class="mobile-nav-item-label">Week</div>
+            </div>
+            <div class="mobile-nav-item" onclick="switchViewMobile('month')">
+                <div class="mobile-nav-item-icon">🗓️</div>
+                <div class="mobile-nav-item-label">Month</div>
+            </div>
+            <div class="mobile-nav-item" onclick="switchViewMobile('list')">
+                <div class="mobile-nav-item-icon">📋</div>
+                <div class="mobile-nav-item-label">All</div>
+            </div>
+            <div class="mobile-nav-item" onclick="openAddModal()">
+                <div class="mobile-nav-item-icon">➕</div>
+                <div class="mobile-nav-item-label">Add</div>
+            </div>
+        </div>
+    </nav>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <script>
+        // ============================================
+        // FIREBASE CONFIGURATION & SYNC
+        // ============================================
+
+        // Firebase Configuration (YOU NEED TO REPLACE WITH YOUR OWN)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        let firebaseApp = null;
+        let auth = null;
+        let database = null;
+        let currentUser = null;
+        let syncEnabled = false;
+
+        try {
+            if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_API_KEY_HERE') {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                database = firebase.database();
+                syncEnabled = true;
+                console.log('Firebase initialized successfully');
+            }
+        } catch (error) {
+            console.log('Firebase not configured or unavailable:', error.message);
+            syncEnabled = false;
+        }
+
+        // Auth State Listener
+        if (syncEnabled) {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                updateAuthUI(user);
+                if (user) {
+                    loadFromFirebase();
+                    setupFirebaseSync();
+                } else {
+                    loadData(); // Load from localStorage
+                }
+            });
+        }
+
+        // Update Auth UI
+        function updateAuthUI(user) {
+            const authBtn = document.getElementById('authBtn');
+            const syncStatus = document.getElementById('syncStatus');
+            const syncIcon = document.getElementById('syncIcon');
+            const syncText = document.getElementById('syncText');
+
+            if (user) {
+                authBtn.textContent = '👋';
+                authBtn.title = `Signed in as ${user.email}. Click to sign out`;
+                syncIcon.textContent = '☁️';
+                syncText.textContent = 'Synced';
+                syncStatus.className = 'sync-status synced';
+            } else {
+                authBtn.textContent = '👤';
+                authBtn.title = 'Sign in for cloud sync';
+                syncIcon.textContent = '💾';
+                syncText.textContent = 'Local';
+                syncStatus.className = 'sync-status';
+            }
+        }
+
+        // Toggle Auth
+        function toggleAuth() {
+            if (!syncEnabled) {
+                showToast('Firebase not configured. See setup instructions.');
+                return;
+            }
+
+            if (currentUser) {
+                // Sign out
+                if (confirm('Sign out? Your data will remain in the cloud but not sync until you sign back in.')) {
+                    auth.signOut();
+                    showToast('Signed out');
+                }
+            } else {
+                // Sign in with email
+                const email = prompt('Enter your email:');
+                if (!email) return;
+
+                const password = prompt('Enter your password (or create a new one):');
+                if (!password) return;
+
+                // Try sign in first, if fails, create account
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        showToast('Signed in successfully!');
+                    })
+                    .catch((error) => {
+                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                            // Account doesn't exist, create it
+                            if (confirm('Account not found. Create a new account with this email?')) {
+                                auth.createUserWithEmailAndPassword(email, password)
+                                    .then(() => {
+                                        showToast('Account created! Syncing your data...');
+                                        saveToFirebase(); // Upload local data to cloud
+                                    })
+                                    .catch((err) => {
+                                        showToast('Error: ' + err.message);
+                                    });
+                            }
+                        } else {
+                            showToast('Error: ' + error.message);
+                        }
+                    });
+            }
+        }
+
+        // Load data from Firebase
+        function loadFromFirebase() {
+            if (!currentUser) return;
+
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.className = 'sync-status syncing';
+            document.getElementById('syncText').textContent = 'Loading...';
+
+            const userRef = database.ref('users/' + currentUser.uid + '/data');
+            userRef.once('value')
+                .then((snapshot) => {
+                    const cloudData = snapshot.val();
+                    if (cloudData) {
+                        // Merge with local data (cloud takes precedence)
+                        data = { ...data, ...cloudData };
+                        localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                        renderAll();
+                        showToast('Data loaded from cloud');
+                    } else {
+                        // No cloud data, upload local data
+                        saveToFirebase();
+                    }
+                    syncStatus.className = 'sync-status synced';
+                    document.getElementById('syncText').textContent = 'Synced';
+                })
+                .catch((error) => {
+                    console.error('Firebase load error:', error);
+                    syncStatus.className = 'sync-status error';
+                    document.getElementById('syncText').textContent = 'Error';
+                    showToast('Sync error: ' + error.message);
+                });
+        }
+
+        // Save data to Firebase
+        function saveToFirebase() {
+            if (!currentUser) return;
+
+            const syncStatus = document.getElementById('syncStatus');
+            const originalClass = syncStatus.className;
+            syncStatus.className = 'sync-status syncing';
+
+            const userRef = database.ref('users/' + currentUser.uid + '/data');
+            userRef.set(data)
+                .then(() => {
+                    syncStatus.className = 'sync-status synced';
+                    document.getElementById('syncIcon').textContent = '✓';
+                    setTimeout(() => {
+                        document.getElementById('syncIcon').textContent = '☁️';
+                    }, 2000);
+                })
+                .catch((error) => {
+                    console.error('Firebase save error:', error);
+                    syncStatus.className = 'sync-status error';
+                    document.getElementById('syncText').textContent = 'Error';
+                });
+        }
+
+        // Setup real-time sync listener
+        function setupFirebaseSync() {
+            if (!currentUser) return;
+
+            const userRef = database.ref('users/' + currentUser.uid + '/data');
+            userRef.on('value', (snapshot) => {
+                const cloudData = snapshot.val();
+                if (cloudData) {
+                    // Check if data changed from another device
+                    const localDataStr = JSON.stringify(data);
+                    const cloudDataStr = JSON.stringify(cloudData);
+
+                    if (localDataStr !== cloudDataStr) {
+                        data = cloudData;
+                        localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                        renderAll();
+                        showToast('Synced from another device');
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // SUPABASE CONFIGURATION & SYNC (Alternative to Firebase)
+        // ============================================
+
+        // Supabase Configuration (YOU NEED TO REPLACE WITH YOUR OWN)
+        const supabaseConfig = {
+            url: 'https://ghfnrwwsdsabpmicwnnv.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoZm5yd3dzZHNhYnBtaWN3bm52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MzY1NDUsImV4cCI6MjA4MzIxMjU0NX0.QWxFoxox549v1nClIIj4UWSK5kCqMcHPtp2uI9XeH2w'
+        };
+
+        // Initialize Supabase
+        let supabaseClient = null;
+        let supabaseUser = null;
+        let supabaseSyncEnabled = false;
+
+        try {
+            if (typeof supabase !== 'undefined' && supabaseConfig.url !== 'YOUR_SUPABASE_URL') {
+                supabaseClient = supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey);
+                supabaseSyncEnabled = true;
+                console.log('Supabase initialized successfully');
+
+                // Listen for auth changes
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    supabaseUser = session?.user || null;
+                    updateAuthUI(supabaseUser);
+                    if (supabaseUser) {
+                        loadFromSupabase();
+                        setupSupabaseSync();
+                    } else {
+                        loadData();
+                    }
+                });
+
+                // Check current session
+                supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                    supabaseUser = session?.user || null;
+                    updateAuthUI(supabaseUser);
+                });
+            }
+        } catch (error) {
+            console.log('Supabase not configured or unavailable:', error.message);
+            supabaseSyncEnabled = false;
+        }
+
+        // Load data from Supabase
+        async function loadFromSupabase() {
+            if (!supabaseUser) return;
+
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.className = 'sync-status syncing';
+            document.getElementById('syncText').textContent = 'Loading...';
+
+            try {
+                const { data: cloudData, error } = await supabaseClient
+                    .from('calendar_data')
+                    .select('data')
+                    .eq('user_id', supabaseUser.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+                    throw error;
+                }
+
+                if (cloudData?.data) {
+                    data = { ...data, ...cloudData.data };
+                    localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                    renderAll();
+                    showToast('Data loaded from cloud');
+                } else {
+                    // No cloud data, upload local data
+                    await saveToSupabase();
+                }
+
+                syncStatus.className = 'sync-status synced';
+                document.getElementById('syncText').textContent = 'Synced';
+            } catch (error) {
+                console.error('Supabase load error:', error);
+                syncStatus.className = 'sync-status error';
+                document.getElementById('syncText').textContent = 'Error';
+                showToast('Sync error: ' + error.message);
+            }
+        }
+
+        // Save data to Supabase
+        async function saveToSupabase() {
+            if (!supabaseUser) return;
+
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.className = 'sync-status syncing';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('calendar_data')
+                    .upsert({
+                        user_id: supabaseUser.id,
+                        data: data,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) throw error;
+
+                syncStatus.className = 'sync-status synced';
+                document.getElementById('syncIcon').textContent = '✓';
+                setTimeout(() => {
+                    document.getElementById('syncIcon').textContent = '☁️';
+                }, 2000);
+            } catch (error) {
+                console.error('Supabase save error:', error);
+                syncStatus.className = 'sync-status error';
+                document.getElementById('syncText').textContent = 'Error';
+            }
+        }
+
+        // Setup real-time sync listener for Supabase
+        function setupSupabaseSync() {
+            if (!supabaseUser) return;
+
+            supabaseClient
+                .channel('calendar_changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'calendar_data',
+                        filter: `user_id=eq.${supabaseUser.id}`
+                    },
+                    (payload) => {
+                        const cloudData = payload.new.data;
+                        if (cloudData) {
+                            const localDataStr = JSON.stringify(data);
+                            const cloudDataStr = JSON.stringify(cloudData);
+
+                            if (localDataStr !== cloudDataStr) {
+                                data = cloudData;
+                                localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                                renderAll();
+                                showToast('Synced from another device');
+                            }
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        // Override toggleAuth to use Supabase if enabled
+        const originalToggleAuth = toggleAuth;
+        toggleAuth = async function() {
+            // Use Supabase if enabled, otherwise fall back to Firebase
+            if (supabaseSyncEnabled) {
+                if (supabaseUser) {
+                    // Sign out
+                    if (confirm('Sign out? Your data will remain in the cloud but not sync until you sign back in.')) {
+                        await supabaseClient.auth.signOut();
+                        showToast('Signed out');
+                    }
+                } else {
+                    // Sign in with email
+                    const email = prompt('Enter your email:');
+                    if (!email) return;
+
+                    const password = prompt('Enter your password (or create a new one):');
+                    if (!password) return;
+
+                    // Try sign in first
+                    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (signInError) {
+                        // Account doesn't exist, create it
+                        if (confirm('Account not found. Create a new account with this email?')) {
+                            const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+                                email: email,
+                                password: password
+                            });
+
+                            if (signUpError) {
+                                showToast('Error: ' + signUpError.message);
+                            } else {
+                                showToast('Account created! Check your email to verify, then sign in.');
+                            }
+                        }
+                    } else {
+                        showToast('Signed in successfully!');
+                        await saveToSupabase(); // Upload local data to cloud
+                    }
+                }
+            } else {
+                // Fall back to Firebase
+                originalToggleAuth();
+            }
+        };
+
+        // ============================================
+        // DATA STRUCTURE
+        // ============================================
+
         // Data Structure
         let data = {
             events: [],
             tasks: [],
             ideas: [],
+            reminders: [],
+            planning: [],
             categories: ['work', 'personal', 'health', 'research', 'meeting', 'other'],
+            calendars: [
+                { id: 'default', name: 'My Calendar', color: '#6366f1', visible: true },
+                { id: 'work', name: 'Work', color: '#4285f4', visible: true },
+                { id: 'personal', name: 'Personal', color: '#34a853', visible: true },
+                { id: 'shared', name: 'Shared', color: '#ea4335', visible: true }
+            ],
             settings: {
                 theme: 'light',
-                startOfWeek: 1 // Monday
+                startOfWeek: 1, // Monday
+                workHoursStart: 9,
+                workHoursEnd: 17,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                showWeekNumbers: true,
+                defaultView: 'week'
             }
         };
 
@@ -1705,6 +2939,22 @@
             updateCurrentDate();
             renderAll();
             setupEventListeners();
+            registerServiceWorker();
+        }
+
+        // Register Service Worker for PWA
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then((registration) => {
+                            console.log('ServiceWorker registered:', registration);
+                        })
+                        .catch((error) => {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                });
+            }
         }
 
         function setupEventListeners() {
@@ -1712,6 +2962,58 @@
             document.getElementById('quickInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') processQuickInput();
             });
+            
+            // Mobile: Prevent zoom on input focus (iOS)
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                const inputs = document.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    input.addEventListener('focus', () => {
+                        input.style.fontSize = '16px';
+                    });
+                    input.addEventListener('blur', () => {
+                        input.style.fontSize = '';
+                    });
+                });
+            }
+            
+            // Touch-friendly: Add swipe gestures for mobile navigation
+            setupSwipeGestures();
+        }
+
+        // Swipe gestures for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function setupSwipeGestures() {
+            const container = document.querySelector('.main-content');
+            if (!container) return;
+
+            container.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            container.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+        }
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+
+            if (Math.abs(diff) > swipeThreshold) {
+                const views = ['today', 'week', 'month', 'list'];
+                const currentIndex = views.indexOf(currentView);
+                
+                if (diff > 0 && currentIndex < views.length - 1) {
+                    // Swipe left - next view
+                    switchViewMobile(views[currentIndex + 1]);
+                } else if (diff < 0 && currentIndex > 0) {
+                    // Swipe right - previous view
+                    switchViewMobile(views[currentIndex - 1]);
+                }
+            }
         }
 
         // Data Management
@@ -1818,9 +3120,69 @@
             }
         }
 
+        // Legacy cloud sync variables (kept for compatibility with old settings UI)
+        let cloudSyncEnabled = false;
+        let userId = null; // User identifier for sync
+
         function saveData() {
+            // Always save to localStorage first
             localStorage.setItem('commandCenterProData', JSON.stringify(data));
             renderAll();
+
+            // Save to Supabase if enabled (takes precedence over Firebase)
+            if (supabaseSyncEnabled && supabaseUser) {
+                saveToSupabase();
+            }
+            // Fall back to Firebase if enabled and user is signed in
+            else if (syncEnabled && currentUser) {
+                saveToFirebase();
+            }
+        }
+
+        // Legacy cloud sync function (kept for compatibility)
+        async function saveToCloud() {
+            
+            try {
+                // This would use Firebase SDK to save data
+                // Example: firebase.database().ref(`users/${userId}`).set(data);
+                console.log('Saving to cloud...');
+            } catch (error) {
+                console.error('Cloud save error:', error);
+                showToast('Cloud sync failed, but data saved locally');
+            }
+        }
+
+        async function loadFromCloud() {
+            if (!firebaseConfig || !userId) return;
+            
+            try {
+                // This would use Firebase SDK to load data
+                // Example: const snapshot = await firebase.database().ref(`users/${userId}`).once('value');
+                // const cloudData = snapshot.val();
+                console.log('Loading from cloud...');
+            } catch (error) {
+                console.error('Cloud load error:', error);
+            }
+        }
+
+        function enableCloudSync(config, user) {
+            firebaseConfig = config;
+            userId = user;
+            cloudSyncEnabled = true;
+            localStorage.setItem('cloudSyncEnabled', 'true');
+            localStorage.setItem('firebaseConfig', JSON.stringify(config));
+            localStorage.setItem('userId', user);
+            showToast('Cloud sync enabled!');
+        }
+
+        function disableCloudSync() {
+            cloudSyncEnabled = false;
+            firebaseConfig = null;
+            userId = null;
+            localStorage.removeItem('cloudSyncEnabled');
+            localStorage.removeItem('firebaseConfig');
+            localStorage.removeItem('userId');
+            showToast('Cloud sync disabled');
         }
 
         // Theme
@@ -1844,12 +3206,50 @@
         function switchView(view) {
             currentView = view;
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
             
             document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
             document.getElementById(view + 'View').style.display = 'block';
             
+            // Update mobile nav
+            updateMobileNav(view);
+            
             renderAll();
+        }
+
+        // Mobile Navigation
+        function switchViewMobile(view) {
+            currentView = view;
+            document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
+            document.getElementById(view + 'View').style.display = 'block';
+            
+            // Update desktop view buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(view)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            updateMobileNav(view);
+            renderAll();
+            
+            // Scroll to top on mobile
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateMobileNav(view) {
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const navItems = document.querySelectorAll('.mobile-nav-item');
+            const viewMap = { 'today': 0, 'week': 1, 'month': 2, 'list': 3 };
+            if (viewMap[view] !== undefined && navItems[viewMap[view]]) {
+                navItems[viewMap[view]].classList.add('active');
+            }
         }
 
         // Natural Language Processing
@@ -1871,6 +3271,12 @@
                     data.events.push(parsed);
                 } else if (parsed.type === 'task') {
                     data.tasks.push(parsed);
+                } else if (parsed.type === 'reminder') {
+                    if (!data.reminders) data.reminders = [];
+                    data.reminders.push(parsed);
+                } else if (parsed.type === 'planning') {
+                    if (!data.planning) data.planning = [];
+                    data.planning.push(parsed);
                 } else if (parsed.type === 'idea') {
                     data.ideas.push(parsed);
                 }
@@ -1901,6 +3307,10 @@
             let type = 'task';
             if (lowerInput.includes('idea:') || lowerInput.includes('note:')) {
                 type = 'idea';
+            } else if (lowerInput.includes('remind') || lowerInput.includes('reminder:')) {
+                type = 'reminder';
+            } else if (lowerInput.includes('plan') || lowerInput.includes('goal') || lowerInput.includes('planning:')) {
+                type = 'planning';
             } else if (lowerInput.includes('meeting') || lowerInput.includes('appointment') || /\d{1,2}\s?(:|to)?\s?\d{0,2}\s?(am|pm)/i.test(lowerInput)) {
                 type = 'event';
             }
@@ -2141,6 +3551,12 @@
             // Render all tasks
             renderAllTasks();
             
+            // Render reminders
+            renderReminders();
+            
+            // Render planning
+            renderPlanning();
+            
             // Render ideas
             renderIdeas();
         }
@@ -2151,32 +3567,529 @@
             startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + data.settings.startOfWeek);
 
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             const expandedEvents = getExpandedEvents();
-            
+
+            // Update week title with week number
+            const weekNum = getWeekNumber(startOfWeek);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            const weekTitleEl = document.getElementById('weekTitle');
+            if (weekTitleEl) {
+                weekTitleEl.textContent = `Week ${weekNum} - ${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            }
+
             weekCalendar.innerHTML = '';
             
+            // Day columns
             for (let i = 0; i < 7; i++) {
                 const date = new Date(startOfWeek);
                 date.setDate(startOfWeek.getDate() + i);
                 const dateStr = date.toISOString().split('T')[0];
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
                 
-                const dayEvents = expandedEvents.filter(e => e.date === dateStr);
-                const dayTasks = data.tasks.filter(t => t.date === dateStr && !t.completed);
+                const dayColumn = document.createElement('div');
+                dayColumn.className = 'week-day-column';
                 
-                const dayCard = document.createElement('div');
-                dayCard.className = 'day-card' + (isToday ? ' today' : '');
-                dayCard.onclick = () => openAddModal(dateStr, 'event');
-                dayCard.style.cursor = 'pointer';
-                dayCard.innerHTML = `
-                    <div class="day-name">${days[i]}</div>
-                    <div class="day-num">${date.getDate()}</div>
-                    <div class="day-events">
-                        ${dayEvents.map(e => `<div class="day-event-dot">${e.time ? e.time.slice(0,5) : ''} ${e.title}</div>`).join('')}
-                        ${dayTasks.map(t => `<div class="day-event-dot">✓ ${t.title}</div>`).join('')}
-                    </div>
+                // Day header
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'week-day-header' + (isToday ? ' today' : '');
+                dayHeader.onclick = () => openAddModal(dateStr, 'event');
+                dayHeader.innerHTML = `
+                    <div class="week-day-name">${days[i]}</div>
+                    <div class="week-day-number">${date.getDate()}</div>
                 `;
-                weekCalendar.appendChild(dayCard);
+                dayColumn.appendChild(dayHeader);
+                
+                // Time slots container (for events positioning)
+                const slotsContainer = document.createElement('div');
+                slotsContainer.className = 'week-day-slots';
+
+                // Create time slot cells for full 24 hours with 30-minute intervals
+                for (let hour = 0; hour < 24; hour++) {
+                    for (let halfHour = 0; halfHour < 2; halfHour++) {
+                        const minutes = halfHour * 30;
+                        const slotCell = document.createElement('div');
+                        slotCell.className = 'week-time-slot-cell' + (halfHour === 0 ? ' hour-boundary' : ' half-hour');
+                        slotCell.dataset.date = dateStr;
+                        slotCell.dataset.hour = hour;
+                        slotCell.dataset.minutes = minutes;
+
+                        // Highlight work hours (9 AM - 5 PM)
+                        if (hour >= data.settings.workHoursStart && hour < data.settings.workHoursEnd) {
+                            slotCell.classList.add('work-hours');
+                        }
+
+                        slotCell.onclick = (e) => {
+                            if (!e.target.closest('.calendar-event-block')) {
+                                const time = `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                                openAddModal(dateStr, 'event', time);
+                            }
+                        };
+
+                        // Double-click to create quick event
+                        slotCell.ondblclick = (e) => {
+                            e.stopPropagation();
+                            const time = `${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                            quickCreateEvent(dateStr, time);
+                        };
+
+                        slotsContainer.appendChild(slotCell);
+                    }
+                }
+                
+                // Add events for this day (all-day events go in banner, timed events in grid)
+                const dayEvents = expandedEvents.filter(e => {
+                    if (e.date !== dateStr) return false;
+                    return e.time; // Only timed events (all-day events shown separately)
+                });
+                dayEvents.forEach(event => {
+                    const eventBlock = createWeekEventBlock(event);
+                    slotsContainer.appendChild(eventBlock);
+                });
+                
+                dayColumn.appendChild(slotsContainer);
+                weekCalendar.appendChild(dayColumn);
+            }
+        }
+
+        function formatHour(hour) {
+            if (hour === 0) return '12 AM';
+            if (hour < 12) return `${hour} AM`;
+            if (hour === 12) return '12 PM';
+            return `${hour - 12} PM`;
+        }
+
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date;
+        }
+
+        // Quick create event with double-click
+        function quickCreateEvent(dateStr, time) {
+            const title = prompt('Event title:');
+            if (!title) return;
+
+            const newEvent = {
+                id: Date.now(),
+                title: title.trim(),
+                date: dateStr,
+                time: time,
+                endTime: calculateEndTime(time, 60), // 1-hour default
+                category: 'work',
+                priority: 'medium',
+                calendarId: 'default',
+                created: new Date().toISOString()
+            };
+
+            data.events.push(newEvent);
+            saveData();
+            showToast('Event created');
+            renderAll();
+        }
+
+        // Calculate end time from start time and duration
+        function calculateEndTime(startTime, durationMinutes) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes + durationMinutes;
+            const endHour = Math.floor(totalMinutes / 60) % 24;
+            const endMin = totalMinutes % 60;
+            return `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+        }
+
+        // Get week number (ISO 8601)
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        // Check for overlapping events (conflict detection)
+        function hasConflict(event, excludeId = null) {
+            const expandedEvents = getExpandedEvents();
+            return expandedEvents.some(e => {
+                if (e.id === excludeId) return false;
+                if (e.date !== event.date) return false;
+                if (!e.time || !event.time) return false;
+                if (e.calendarId && event.calendarId && e.calendarId !== event.calendarId) return false;
+
+                const [e1Start, e1End] = getEventTimeRange(event);
+                const [e2Start, e2End] = getEventTimeRange(e);
+
+                return (e1Start < e2End && e1End > e2Start);
+            });
+        }
+
+        // Get event time range in minutes from midnight
+        function getEventTimeRange(event) {
+            const [startHour, startMin] = event.time.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMin;
+
+            let endMinutes = startMinutes + 60; // Default 1 hour
+            if (event.endTime) {
+                const [endHour, endMin] = event.endTime.split(':').map(Number);
+                endMinutes = endHour * 60 + endMin;
+            }
+
+            return [startMinutes, endMinutes];
+        }
+
+        // Format timezone aware time
+        function formatTimeInTimezone(dateStr, timeStr, timezone) {
+            try {
+                const [year, month, day] = dateStr.split('-');
+                const [hours, minutes] = timeStr.split(':');
+                const date = new Date(year, month - 1, day, hours, minutes);
+                return date.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return timeStr;
+            }
+        }
+
+        function createWeekEventBlock(event) {
+            const block = document.createElement('div');
+            block.className = `calendar-event-block event-category-${event.category || 'other'}`;
+            block.dataset.eventId = event.id;
+            block.title = `${event.title}${event.time ? ' at ' + event.time : ''}`;
+            
+            if (!event.time) {
+                // All-day event - these will be shown in separate banner
+                block.style.top = '0px';
+                block.style.height = '24px';
+            } else {
+                // Calculate position based on exact time (0:00 = 0, each hour = 48px, each 30min = 24px)
+                const [startHour, startMin] = event.time.split(':').map(Number);
+
+                // Calculate total minutes from midnight
+                const totalMinutesFromMidnight = startHour * 60 + startMin;
+                // Convert to pixels: 48px per hour = 0.8px per minute
+                const topPixels = totalMinutesFromMidnight * (48 / 60);
+                block.style.top = `${Math.round(topPixels * 10) / 10}px`;
+
+                // Calculate height based on duration
+                let durationMinutes = 60; // default 1 hour
+                if (event.endTime) {
+                    const [endHour, endMin] = event.endTime.split(':').map(Number);
+                    const startTotalMinutes = startHour * 60 + startMin;
+                    const endTotalMinutes = endHour * 60 + endMin;
+                    durationMinutes = endTotalMinutes - startTotalMinutes;
+                    if (durationMinutes <= 0) durationMinutes = 60; // Fallback
+                }
+                // Each minute = 0.8px (48px per hour / 60 minutes)
+                const heightPixels = durationMinutes * (48 / 60);
+                block.style.height = `${Math.max(Math.round(heightPixels * 10) / 10, 20)}px`; // Minimum 20px
+            }
+
+            // Apply custom event color if set
+            if (event.color) {
+                block.style.backgroundColor = event.color;
+                block.style.borderColor = event.color;
+            }
+
+            // Apply calendar color if no custom color
+            if (event.calendarId && !event.color) {
+                const calendar = data.calendars.find(c => c.id === event.calendarId);
+                if (calendar) {
+                    block.style.backgroundColor = calendar.color + '20'; // 20% opacity
+                    block.style.borderLeftColor = calendar.color;
+                    block.style.borderLeftWidth = '3px';
+                }
+            }
+            
+            // Build content
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'event-block-title';
+            titleDiv.textContent = event.title;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'event-block-time';
+            if (event.endTime) {
+                timeDiv.textContent = `${formatTimeShort(event.time)} - ${formatTimeShort(event.endTime)}`;
+            } else {
+                timeDiv.textContent = formatTimeShort(event.time);
+            }
+            
+            block.appendChild(titleDiv);
+            block.appendChild(timeDiv);
+
+            // Add resize handles
+            const resizeTop = document.createElement('div');
+            resizeTop.className = 'event-resize-handle event-resize-top';
+            resizeTop.title = 'Drag to resize';
+            block.appendChild(resizeTop);
+
+            const resizeBottom = document.createElement('div');
+            resizeBottom.className = 'event-resize-handle event-resize-bottom';
+            resizeBottom.title = 'Drag to resize';
+            block.appendChild(resizeBottom);
+
+            // Conflict indicator
+            if (hasConflict(event, event.id)) {
+                block.classList.add('has-conflict');
+                const conflictBadge = document.createElement('div');
+                conflictBadge.className = 'conflict-badge';
+                conflictBadge.title = 'Scheduling conflict';
+                conflictBadge.textContent = '!';
+                block.appendChild(conflictBadge);
+            }
+
+            block.onclick = (e) => {
+                if (e.target.classList.contains('event-resize-handle')) return;
+                e.stopPropagation();
+                showEventDetails(event);
+            };
+
+            // Right-click context menu
+            block.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showEventContextMenu(event, e.clientX, e.clientY);
+            };
+
+            // Make draggable
+            makeEventDraggable(block, event);
+
+            // Make resizable
+            makeEventResizable(block, event, resizeTop, resizeBottom);
+
+            return block;
+        }
+
+        function formatTimeShort(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            return `${displayHour}:${String(minutes).padStart(2, '0')} ${period}`;
+        }
+
+        function makeEventDraggable(element, event) {
+            let isDragging = false;
+            let startY = 0;
+            let startTop = 0;
+            let originalDate = event.date;
+            let originalTime = event.time;
+            
+            element.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startY = e.clientY;
+                startTop = parseFloat(element.style.top) || 0;
+                element.classList.add('dragging');
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaY = e.clientY - startY;
+                // Visual feedback during drag
+                element.style.transform = `translateY(${deltaY}px)`;
+            });
+            
+            document.addEventListener('mouseup', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                element.classList.remove('dragging');
+                
+                const deltaY = e.clientY - startY;
+                const newTop = startTop + deltaY;
+
+                // Calculate new time (48px per hour, starting from midnight)
+                const totalMinutes = (newTop / 48) * 60; // Convert pixels to minutes from midnight
+                const newHour = Math.floor(totalMinutes / 60);
+                const newMinute = Math.round(totalMinutes % 60);
+
+                // Find which day column we're in
+                const dayColumn = element.closest('.week-day-column');
+                if (dayColumn) {
+                    const dayHeader = dayColumn.querySelector('.week-day-header');
+                    const dateStr = dayHeader.onclick.toString().match(/'([^']+)'/)?.[1];
+
+                    if (dateStr && newHour >= 0 && newHour < 24 && newTop >= 0) {
+                        // Update event
+                        event.date = dateStr;
+                        event.time = `${String(newHour).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`;
+
+                        // Update end time if present (maintain duration)
+                        if (event.endTime) {
+                            const [oldStartHour, oldStartMin] = originalTime.split(':').map(Number);
+                            const [oldEndHour, oldEndMin] = event.endTime.split(':').map(Number);
+                            const duration = (oldEndHour * 60 + oldEndMin) - (oldStartHour * 60 + oldStartMin);
+                            const newEndTotalMinutes = totalMinutes + duration;
+                            const newEndHour = Math.floor(newEndTotalMinutes / 60);
+                            const newEndMinute = Math.round(newEndTotalMinutes % 60);
+                            if (newEndHour < 24) {
+                                event.endTime = `${String(newEndHour).padStart(2, '0')}:${String(newEndMinute).padStart(2, '0')}`;
+                            }
+                        }
+
+                        saveData();
+                        showToast('Event moved');
+                        renderAll();
+                    } else {
+                        // Revert if invalid
+                        element.style.transform = '';
+                    }
+                } else {
+                    element.style.transform = '';
+                }
+            });
+        }
+
+        // Make event resizable by dragging top/bottom edges
+        function makeEventResizable(element, event, resizeTopHandle, resizeBottomHandle) {
+            let isResizing = false;
+            let resizeDirection = null;
+            let startY = 0;
+            let startHeight = 0;
+            let startTop = 0;
+
+            const startResize = (e, direction) => {
+                isResizing = true;
+                resizeDirection = direction;
+                startY = e.clientY;
+                startHeight = parseFloat(element.style.height) || 48;
+                startTop = parseFloat(element.style.top) || 0;
+                element.classList.add('resizing');
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            resizeTopHandle.addEventListener('mousedown', (e) => startResize(e, 'top'));
+            resizeBottomHandle.addEventListener('mousedown', (e) => startResize(e, 'bottom'));
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const deltaY = e.clientY - startY;
+
+                if (resizeDirection === 'top') {
+                    const newTop = startTop + deltaY;
+                    const newHeight = startHeight - deltaY;
+                    if (newHeight >= 20 && newTop >= 0) {
+                        element.style.top = `${newTop}px`;
+                        element.style.height = `${newHeight}px`;
+                    }
+                } else if (resizeDirection === 'bottom') {
+                    const newHeight = startHeight + deltaY;
+                    if (newHeight >= 20) {
+                        element.style.height = `${newHeight}px`;
+                    }
+                }
+            });
+
+            document.addEventListener('mouseup', (e) => {
+                if (!isResizing) return;
+                isResizing = false;
+                element.classList.remove('resizing');
+
+                const newTop = parseFloat(element.style.top) || 0;
+                const newHeight = parseFloat(element.style.height) || 48;
+
+                // Calculate new times
+                const startMinutes = (newTop / 48) * 60;
+                const durationMinutes = (newHeight / 48) * 60;
+                const endMinutes = startMinutes + durationMinutes;
+
+                const newStartHour = Math.floor(startMinutes / 60);
+                const newStartMin = Math.round(startMinutes % 60);
+                const newEndHour = Math.floor(endMinutes / 60);
+                const newEndMin = Math.round(endMinutes % 60);
+
+                if (newStartHour >= 0 && newStartHour < 24 && newEndHour > newStartHour && newEndHour <= 24) {
+                    event.time = `${String(newStartHour).padStart(2, '0')}:${String(newStartMin).padStart(2, '0')}`;
+                    event.endTime = `${String(newEndHour).padStart(2, '0')}:${String(newEndMin).padStart(2, '0')}`;
+                    saveData();
+                    showToast('Event resized');
+                    renderAll();
+                } else {
+                    // Revert
+                    renderAll();
+                }
+            });
+        }
+
+        // Show context menu for event
+        function showEventContextMenu(event, x, y) {
+            // Remove existing menu
+            const existingMenu = document.querySelector('.event-context-menu');
+            if (existingMenu) existingMenu.remove();
+
+            const menu = document.createElement('div');
+            menu.className = 'event-context-menu';
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+
+            const menuItems = [
+                { label: 'Edit', icon: '✏️', action: () => editItem('event', event.id) },
+                { label: 'Duplicate', icon: '📋', action: () => duplicateEvent(event) },
+                { label: 'Change Color', icon: '🎨', action: () => changeEventColor(event) },
+                { label: 'Move to Calendar', icon: '📅', action: () => moveEventToCalendar(event) },
+                { label: 'Delete', icon: '🗑️', action: () => deleteItem('event', event.id), class: 'danger' }
+            ];
+
+            menuItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'context-menu-item' + (item.class ? ` ${item.class}` : '');
+                menuItem.innerHTML = `<span>${item.icon}</span> ${item.label}`;
+                menuItem.onclick = () => {
+                    item.action();
+                    menu.remove();
+                };
+                menu.appendChild(menuItem);
+            });
+
+            document.body.appendChild(menu);
+
+            // Close menu on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu() {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }, 10);
+            });
+        }
+
+        // Duplicate event
+        function duplicateEvent(event) {
+            const newEvent = {
+                ...event,
+                id: Date.now(),
+                title: event.title + ' (Copy)',
+                created: new Date().toISOString()
+            };
+            delete newEvent.recurringInstanceDate;
+            data.events.push(newEvent);
+            saveData();
+            showToast('Event duplicated');
+            renderAll();
+        }
+
+        // Change event color
+        function changeEventColor(event) {
+            const color = prompt('Enter color (hex code):', event.color || '#6366f1');
+            if (color) {
+                event.color = color;
+                saveData();
+                renderAll();
+            }
+        }
+
+        // Move event to different calendar
+        function moveEventToCalendar(event) {
+            const calendarNames = data.calendars.map(c => `${c.name} (${c.id})`).join('\n');
+            const calendarId = prompt(`Move to calendar:\n${calendarNames}\n\nEnter calendar ID:`);
+            if (calendarId && data.calendars.some(c => c.id === calendarId)) {
+                event.calendarId = calendarId;
+                saveData();
+                showToast('Event moved');
+                renderAll();
             }
         }
 
@@ -2221,23 +4134,56 @@
                 const dateStr = date.toISOString().split('T')[0];
                 const isToday = dateStr === today;
                 
-                const hasEvents = expandedEvents.some(e => e.date === dateStr) || 
-                                 data.tasks.some(t => t.date === dateStr);
+                const dayEvents = expandedEvents.filter(e => e.date === dateStr);
+                const dayTasks = data.tasks.filter(t => t.date === dateStr && !t.completed);
+                const allDayItems = [...dayEvents, ...dayTasks].slice(0, 3); // Show max 3 items
+                const moreCount = (dayEvents.length + dayTasks.length) - 3;
                 
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'month-day' + (isToday ? ' today' : '');
-                dayDiv.textContent = day;
                 dayDiv.onclick = () => openAddModal(dateStr, 'event');
                 dayDiv.style.cursor = 'pointer';
-                if (hasEvents) {
-                    const dot = document.createElement('div');
-                    dot.style.width = '6px';
-                    dot.style.height = '6px';
-                    dot.style.background = isToday ? 'white' : 'var(--primary)';
-                    dot.style.borderRadius = '50%';
-                    dot.style.margin = '4px auto 0';
-                    dayDiv.appendChild(dot);
+                
+                // Day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'month-day-number';
+                dayNumber.textContent = day;
+                dayDiv.appendChild(dayNumber);
+                
+                // Events preview
+                if (allDayItems.length > 0) {
+                    const eventsContainer = document.createElement('div');
+                    eventsContainer.className = 'month-day-events';
+                    
+                    allDayItems.forEach(item => {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = `month-day-event event-category-${item.category || 'other'}`;
+                        eventDiv.textContent = item.time ? `${item.time.slice(0,5)} ${item.title}` : item.title;
+                        eventDiv.title = item.title;
+                        eventDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            if (item.type === 'event' || !item.type) {
+                                showEventDetails(item);
+                            } else {
+                                // Show task details or open edit
+                                openAddModal(dateStr, 'task');
+                            }
+                        };
+                        eventsContainer.appendChild(eventDiv);
+                    });
+                    
+                    if (moreCount > 0) {
+                        const moreDiv = document.createElement('div');
+                        moreDiv.className = 'month-day-event';
+                        moreDiv.style.background = 'var(--medium-gray)';
+                        moreDiv.style.color = 'var(--dark-gray)';
+                        moreDiv.textContent = `+${moreCount} more`;
+                        eventsContainer.appendChild(moreDiv);
+                    }
+                    
+                    dayDiv.appendChild(eventsContainer);
                 }
+                
                 monthCalendar.appendChild(dayDiv);
             }
             
@@ -2309,6 +4255,8 @@
                             ${timeDisplay ? ` • 🕐 ${timeDisplay}` : ''}
                             ${item.category ? `<span class="item-tag">${item.category}</span>` : ''}
                             ${item.type === 'idea' ? '<span class="item-tag">Idea</span>' : ''}
+                            ${item.type === 'reminder' ? '<span class="item-tag">🔔 Reminder</span>' : ''}
+                            ${item.type === 'planning' ? '<span class="item-tag">📋 Planning</span>' : ''}
                             ${item.recurring ? '<span class="item-tag">🔁 Recurring</span>' : ''}
                         </div>
                     </div>
@@ -2366,6 +4314,43 @@
             }
             
             element.innerHTML = sortedTasks.map(task => renderItem({ ...task, type: 'task' })).join('');
+        }
+
+        function renderReminders() {
+            const element = document.getElementById('remindersList');
+            if (!element) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const sortedReminders = [...(data.reminders || [])].sort((a, b) => {
+                if (a.date && b.date) return a.date.localeCompare(b.date);
+                return new Date(b.created || 0) - new Date(a.created || 0);
+            });
+            
+            if (sortedReminders.length === 0) {
+                element.innerHTML = '<div class="empty-state">No reminders yet</div>';
+                return;
+            }
+            
+            element.innerHTML = sortedReminders.map(reminder => renderItem({ ...reminder, type: 'reminder' })).join('');
+        }
+
+        function renderPlanning() {
+            const element = document.getElementById('planningList');
+            if (!element) return;
+            
+            const sortedPlanning = [...(data.planning || [])].sort((a, b) => {
+                if (a.priority === 'high' && b.priority !== 'high') return -1;
+                if (a.priority !== 'high' && b.priority === 'high') return 1;
+                if (a.date && b.date) return a.date.localeCompare(b.date);
+                return new Date(b.created || 0) - new Date(a.created || 0);
+            });
+            
+            if (sortedPlanning.length === 0) {
+                element.innerHTML = '<div class="empty-state">No planning items yet</div>';
+                return;
+            }
+            
+            element.innerHTML = sortedPlanning.map(plan => renderItem({ ...plan, type: 'planning' })).join('');
         }
 
         function renderIdeas() {
@@ -2452,6 +4437,12 @@
                     data.tasks = data.tasks.filter(t => t.id !== id);
                 } else if (type === 'idea') {
                     data.ideas = data.ideas.filter(i => i.id !== id);
+                } else if (type === 'reminder') {
+                    if (!data.reminders) data.reminders = [];
+                    data.reminders = data.reminders.filter(r => r.id !== id);
+                } else if (type === 'planning') {
+                    if (!data.planning) data.planning = [];
+                    data.planning = data.planning.filter(p => p.id !== id);
                 }
                 saveData();
                 showToast('Item deleted');
@@ -2513,13 +4504,136 @@
         }
 
         // Modal
-        function openAddModal(date = null, type = 'event') {
+        function openAddModal(date = null, type = 'event', time = null) {
             document.getElementById('addModal').classList.add('active');
             document.getElementById('itemType').value = type;
             updateFormFields();
             
             if (date) {
                 document.getElementById('itemDate').value = date;
+            }
+            
+            if (time) {
+                document.getElementById('itemTime').value = time;
+            }
+        }
+
+        // Event Details Popup
+        function showEventDetails(event) {
+            // Remove existing popup
+            const existing = document.getElementById('eventDetailsPopup');
+            if (existing) existing.remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'event-popup-overlay';
+            overlay.id = 'eventDetailsPopup';
+            overlay.onclick = () => overlay.remove();
+            
+            const popup = document.createElement('div');
+            popup.className = 'event-popup';
+            popup.onclick = (e) => e.stopPropagation();
+            
+            const dateStr = event.date ? new Date(event.date).toLocaleDateString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+            }) : 'No date';
+            
+            let timeStr = 'All day';
+            if (event.time) {
+                timeStr = event.time;
+                if (event.endTime) {
+                    timeStr += ` - ${event.endTime}`;
+                }
+            }
+            
+            popup.innerHTML = `
+                <div class="event-popup-header">
+                    <div class="event-popup-title">${event.title}</div>
+                    <button class="event-popup-close" onclick="this.closest('.event-popup-overlay').remove()">×</button>
+                </div>
+                <div class="event-popup-content">
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">📅 Date:</div>
+                        <div class="event-popup-value">${dateStr}</div>
+                    </div>
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">🕐 Time:</div>
+                        <div class="event-popup-value">${timeStr}</div>
+                    </div>
+                    ${event.category ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">🏷️ Category:</div>
+                        <div class="event-popup-value">${event.category}</div>
+                    </div>
+                    ` : ''}
+                    ${event.description ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">📝 Description:</div>
+                        <div class="event-popup-value">${event.description}</div>
+                    </div>
+                    ` : ''}
+                    ${event.location ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">📍 Location:</div>
+                        <div class="event-popup-value">${event.location}</div>
+                    </div>
+                    ` : ''}
+                    ${event.attendees && event.attendees.length ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">👥 Attendees:</div>
+                        <div class="event-popup-value">${event.attendees.join(', ')}</div>
+                    </div>
+                    ` : ''}
+                    ${event.status ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">📋 Status:</div>
+                        <div class="event-popup-value">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</div>
+                    </div>
+                    ` : ''}
+                    ${event.visibility ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">👁️ Show As:</div>
+                        <div class="event-popup-value">${event.visibility.charAt(0).toUpperCase() + event.visibility.slice(1).replace('-', ' ')}</div>
+                    </div>
+                    ` : ''}
+                    ${event.calendarId ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">📅 Calendar:</div>
+                        <div class="event-popup-value">${data.calendars.find(c => c.id === event.calendarId)?.name || event.calendarId}</div>
+                    </div>
+                    ` : ''}
+                    ${event.recurring ? `
+                    <div class="event-popup-field">
+                        <div class="event-popup-label">🔁 Recurring:</div>
+                        <div class="event-popup-value">${event.recurring.frequency}${event.recurring.days ? ' on ' + event.recurring.days.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ') : ''}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 20px;">
+                    <button class="btn-primary" onclick="editEventFromPopup(${event.id}); this.closest('.event-popup-overlay').remove();" style="flex: 1;">Edit</button>
+                    <button class="btn-sm" onclick="deleteItem('event', ${event.id}); this.closest('.event-popup-overlay').remove();" style="background: var(--danger-light); color: var(--danger);">Delete</button>
+                </div>
+            `;
+            
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+        }
+
+        function editEventFromPopup(id) {
+            const event = data.events.find(e => e.id === id);
+            if (!event) return;
+            
+            openAddModal(event.date, 'event', event.time);
+            // Pre-fill form
+            document.getElementById('itemTitle').value = event.title || '';
+            document.getElementById('itemDescription').value = event.description || '';
+            document.getElementById('itemCategory').value = event.category || 'other';
+            if (event.time) document.getElementById('itemTime').value = event.time;
+            if (event.endTime) document.getElementById('itemEndTime').value = event.endTime;
+            if (event.recurring) {
+                document.getElementById('itemRecurring').checked = true;
+                toggleRecurringOptions();
+                document.getElementById('recurringFrequency').value = event.recurring.frequency;
+                // Set days checkboxes
             }
         }
 
@@ -2530,15 +4644,57 @@
 
         function updateFormFields() {
             const type = document.getElementById('itemType').value;
-            document.getElementById('timeGroup').style.display = type === 'event' ? 'block' : 'none';
+            const isEvent = type === 'event';
+
+            document.getElementById('timeGroup').style.display = (type === 'event' || type === 'reminder') ? 'block' : 'none';
             document.getElementById('endTimeGroup').style.display = type === 'event' ? 'block' : 'none';
-            document.getElementById('priorityGroup').style.display = type === 'task' ? 'block' : 'none';
-            document.getElementById('recurringGroup').style.display = type === 'event' ? 'block' : 'none';
+            document.getElementById('priorityGroup').style.display = (type === 'task' || type === 'planning') ? 'block' : 'none';
+            document.getElementById('recurringGroup').style.display = (type === 'event' || type === 'reminder') ? 'block' : 'none';
+            document.getElementById('dateTimeRow').style.display = type === 'idea' ? 'none' : 'grid';
+
+            // Show Outlook-like fields only for events
+            document.getElementById('locationGroup').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('attendeesGroup').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('calendarGroup').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('statusGroup').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('visibilityGroup').style.display = isEvent ? 'block' : 'none';
+            document.getElementById('colorGroup').style.display = isEvent ? 'block' : 'none';
         }
 
         function toggleRecurringOptions() {
             const checked = document.getElementById('itemRecurring').checked;
             document.getElementById('recurringOptions').style.display = checked ? 'block' : 'none';
+        }
+
+        // Quick Time Presets
+        function setQuickTime(time) {
+            document.getElementById('itemTime').value = time;
+            // Auto-set end time if not set
+            const endTimeInput = document.getElementById('itemEndTime');
+            if (!endTimeInput.value) {
+                const [hours, minutes] = time.split(':').map(Number);
+                const endTime = new Date();
+                endTime.setHours(hours + 1, minutes, 0, 0);
+                endTimeInput.value = `${String(endTime.getHours()).padStart(2, '0')}:${String(endTime.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+
+        // Quick Duration Presets
+        function setQuickDuration(minutes) {
+            const startTimeInput = document.getElementById('itemTime');
+            const endTimeInput = document.getElementById('itemEndTime');
+            
+            if (!startTimeInput.value) {
+                showToast('Please set start time first');
+                return;
+            }
+            
+            const [hours, mins] = startTimeInput.value.split(':').map(Number);
+            const startDate = new Date();
+            startDate.setHours(hours, mins, 0, 0);
+            
+            const endDate = new Date(startDate.getTime() + minutes * 60000);
+            endTimeInput.value = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
         }
 
         // Time picker state
@@ -2547,27 +4703,27 @@
         let selectedEndHour = '10';
         let selectedEndMinute = '00';
 
-        function toggleTimePicker(type) {
-            const pickerId = type === 'start' ? 'startTimePicker' : 'endTimePicker';
-            const otherPickerId = type === 'start' ? 'endTimePicker' : 'startTimePicker';
-            
-            // Close other picker
-            document.getElementById(otherPickerId).style.display = 'none';
-            
-            // Toggle this picker
-            const picker = document.getElementById(pickerId);
-            picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
-        }
 
         function selectTime(type, hour, minute) {
+            // Legacy function for compatibility - now uses Apple picker
             if (type === 'start') {
                 if (hour !== null) selectedStartHour = hour;
                 if (minute !== null) selectedStartMinute = minute;
                 document.getElementById('itemTime').value = `${selectedStartHour}:${selectedStartMinute}`;
+                // Update picker if visible
+                const picker = document.getElementById('startTimePicker');
+                if (picker.style.display !== 'none') {
+                    initializeAppleTimePicker('start');
+                }
             } else {
                 if (hour !== null) selectedEndHour = hour;
                 if (minute !== null) selectedEndMinute = minute;
                 document.getElementById('itemEndTime').value = `${selectedEndHour}:${selectedEndMinute}`;
+                // Update picker if visible
+                const picker = document.getElementById('endTimePicker');
+                if (picker.style.display !== 'none') {
+                    initializeAppleTimePicker('end');
+                }
             }
         }
 
@@ -2591,6 +4747,20 @@
                     if (endTime) {
                         item.endTime = endTime;
                     }
+
+                    // Add Outlook-like fields for events
+                    const location = document.getElementById('itemLocation').value;
+                    if (location) item.location = location;
+
+                    const attendees = document.getElementById('itemAttendees').value;
+                    if (attendees) item.attendees = attendees.split(',').map(e => e.trim());
+
+                    item.calendarId = document.getElementById('itemCalendar').value;
+                    item.status = document.getElementById('itemStatus').value;
+                    item.visibility = document.getElementById('itemVisibility').value;
+
+                    const color = document.getElementById('itemColor').value;
+                    if (color && color !== '#000000') item.color = color;
                 }
             }
 
@@ -2603,7 +4773,7 @@
                 const frequency = document.getElementById('recurringFrequency').value;
                 const days = Array.from(document.querySelectorAll('#recurringOptions input[type="checkbox"]:checked'))
                     .map(cb => parseInt(cb.value));
-                
+
                 item.recurring = { frequency, days };
             }
 
@@ -2611,6 +4781,12 @@
                 data.events.push(item);
             } else if (type === 'task') {
                 data.tasks.push(item);
+            } else if (type === 'reminder') {
+                if (!data.reminders) data.reminders = [];
+                data.reminders.push(item);
+            } else if (type === 'planning') {
+                if (!data.planning) data.planning = [];
+                data.planning.push(item);
             } else {
                 data.ideas.push(item);
             }
@@ -2720,12 +4896,228 @@
             a.href = url;
             a.download = `command-center-backup-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
-            showToast('Data exported!');
+            URL.revokeObjectURL(url);
+            showToast('Data exported! Download the file to sync to other browsers.');
+        }
+
+        // Import
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        
+                        if (confirm('This will replace all your current data. Continue?')) {
+                            // Merge or replace data
+                            data = { ...data, ...importedData };
+                            saveData();
+                            showToast('Data imported successfully!');
+                            renderAll();
+                        }
+                    } catch (error) {
+                        showToast('Error: Invalid file format');
+                        console.error('Import error:', error);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         // Settings
         function showSettings() {
-            showToast('Settings feature - coming soon!');
+            const settingsHtml = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">Settings & Data Sync</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">📊 Data Management</h4>
+                        <p style="color: var(--dark-gray); font-size: 14px; margin-bottom: 15px;">
+                            <strong>Current:</strong> Data stored locally. ${cloudSyncEnabled ? '✅ Cloud sync enabled' : 'Manual sync available'}
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <button class="btn-primary" onclick="exportData(); closeSettingsModal();">📤 Export Data</button>
+                            <button class="btn-primary" onclick="importData(); closeSettingsModal();">📥 Import Data</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: var(--primary-light); border-radius: var(--radius);">
+                        <h4 style="margin-bottom: 10px;">☁️ Automatic Cloud Sync (Optional)</h4>
+                        <p style="color: var(--dark-gray); font-size: 14px; margin-bottom: 15px;">
+                            Enable automatic syncing across all browsers and devices using Firebase (free).
+                        </p>
+                        ${cloudSyncEnabled ? `
+                            <div style="padding: 10px; background: var(--success-light); border-radius: var(--radius-sm); margin-bottom: 10px;">
+                                ✅ Cloud sync is <strong>enabled</strong>
+                            </div>
+                            <button class="btn-sm" onclick="disableCloudSync(); closeSettingsModal();" style="background: var(--danger-light); color: var(--danger);">Disable Cloud Sync</button>
+                        ` : `
+                            <button class="btn-primary" onclick="showCloudSyncSetup(); closeSettingsModal();">Enable Cloud Sync</button>
+                            <p style="font-size: 12px; color: var(--dark-gray); margin-top: 10px;">
+                                See <strong>CLOUD-SYNC-GUIDE.md</strong> for setup instructions
+                            </p>
+                        `}
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: var(--medium-gray); border-radius: var(--radius);">
+                        <h4 style="margin-bottom: 10px;">🔄 Manual Sync (Current Method):</h4>
+                        <ol style="margin-left: 20px; color: var(--dark-gray); font-size: 14px; line-height: 1.8;">
+                            <li>On Browser A: Click <strong>Export Data</strong> to download your data</li>
+                            <li>Transfer the JSON file to Browser B (email, cloud storage, USB, etc.)</li>
+                            <li>On Browser B: Click <strong>Import Data</strong> and select the file</li>
+                            <li>Your data will be synced!</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">⚙️ Preferences</h4>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" ${data.settings.theme === 'dark' ? 'checked' : ''} onchange="toggleTheme(); closeSettingsModal();" />
+                                <span>Dark Mode</span>
+                            </label>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" ${document.body.classList.contains('compact-mode') ? 'checked' : ''} onchange="toggleCompactMode(); closeSettingsModal();" />
+                                <span>Compact Mode</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <button class="btn-sm" onclick="closeSettingsModal()" style="width: 100%;">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            // Create or update settings modal
+            let settingsModal = document.getElementById('settingsModal');
+            if (!settingsModal) {
+                settingsModal = document.createElement('div');
+                settingsModal.id = 'settingsModal';
+                settingsModal.className = 'modal';
+                settingsModal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3>Settings</h3>
+                            <button class="modal-close" onclick="closeSettingsModal()">×</button>
+                        </div>
+                        <div id="settingsContent"></div>
+                    </div>
+                `;
+                document.body.appendChild(settingsModal);
+            }
+            
+            document.getElementById('settingsContent').innerHTML = settingsHtml;
+            settingsModal.classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal) {
+                settingsModal.classList.remove('active');
+            }
+        }
+
+        function showCloudSyncSetup() {
+            const setupHtml = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">☁️ Enable Cloud Sync</h3>
+                    <p style="color: var(--dark-gray); margin-bottom: 20px;">
+                        Cloud sync uses Firebase (free) to automatically sync your data across all browsers and devices.
+                    </p>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: var(--warning-light); border-radius: var(--radius);">
+                        <h4 style="margin-bottom: 10px;">📋 Setup Steps:</h4>
+                        <ol style="margin-left: 20px; color: var(--dark-gray); font-size: 14px; line-height: 1.8;">
+                            <li>Go to <a href="https://firebase.google.com" target="_blank">firebase.google.com</a></li>
+                            <li>Create a free account and project</li>
+                            <li>Enable Realtime Database</li>
+                            <li>Get your Firebase config</li>
+                            <li>Enter it below</li>
+                        </ol>
+                        <p style="margin-top: 15px; font-size: 12px;">
+                            📖 See <strong>CLOUD-SYNC-GUIDE.md</strong> for detailed instructions
+                        </p>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">User ID (unique identifier):</label>
+                        <input type="text" id="syncUserId" placeholder="Enter a unique ID (e.g., your email)" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);" />
+                        <p style="font-size: 12px; color: var(--dark-gray); margin-top: 5px;">Use the same ID on all devices to sync</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Firebase Config (JSON):</label>
+                        <textarea id="firebaseConfigInput" placeholder='{"apiKey": "...", "authDomain": "...", "databaseURL": "...", "projectId": "...", "storageBucket": "...", "messagingSenderId": "...", "appId": "..."}' style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-height: 100px; font-family: monospace; font-size: 12px;"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-primary" onclick="setupCloudSync()" style="flex: 1;">Enable Cloud Sync</button>
+                        <button class="btn-sm" onclick="closeCloudSyncModal()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            let modal = document.getElementById('cloudSyncModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'cloudSyncModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h3>Cloud Sync Setup</h3>
+                            <button class="modal-close" onclick="closeCloudSyncModal()">×</button>
+                        </div>
+                        <div id="cloudSyncContent"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            document.getElementById('cloudSyncContent').innerHTML = setupHtml;
+            modal.classList.add('active');
+        }
+
+        function setupCloudSync() {
+            const userId = document.getElementById('syncUserId').value.trim();
+            const configText = document.getElementById('firebaseConfigInput').value.trim();
+            
+            if (!userId) {
+                showToast('Please enter a User ID');
+                return;
+            }
+            
+            if (!configText) {
+                showToast('Please enter Firebase config');
+                return;
+            }
+            
+            try {
+                const config = JSON.parse(configText);
+                enableCloudSync(config, userId);
+                closeCloudSyncModal();
+                showSettings(); // Refresh settings to show enabled status
+            } catch (error) {
+                showToast('Invalid JSON config. Please check your Firebase config.');
+                console.error('Config error:', error);
+            }
+        }
+
+        function closeCloudSyncModal() {
+            const modal = document.getElementById('cloudSyncModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
         }
 
         // Toast

@@ -1,0 +1,50 @@
+{
+  "name": "Command Center Pro - Universal Task Manager",
+  "short_name": "Command Center",
+  "description": "Universal task management app for calendar scheduling, to-do lists, planning, reminders, and ideas. Works on desktop and mobile.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%236366f1'/%3E%3Ctext x='50%25' y='50%25' font-size='120' text-anchor='middle' dominant-baseline='middle' fill='white'%3E🎯%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%236366f1'/%3E%3Ctext x='50%25' y='50%25' font-size='300' text-anchor='middle' dominant-baseline='middle' fill='white'%3E🎯%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Task",
+      "description": "Quickly add a new task",
+      "url": "/?action=add-task",
+      "icons": []
+    },
+    {
+      "name": "Add Event",
+      "short_name": "Event",
+      "description": "Quickly add a new event",
+      "url": "/?action=add-event",
+      "icons": []
+    },
+    {
+      "name": "Today View",
+      "short_name": "Today",
+      "description": "View today's schedule",
+      "url": "/?view=today",
+      "icons": []
+    }
+  ]
+}
+
