@@ -269,11 +269,7 @@
         }
 
         .quick-input-help {
-            font-size: 13px;
-            color: var(--dark-gray);
-            margin-top: 12px;
-            padding-left: 4px;
-            font-weight: 500;
+            display: none; /* Hidden for cleaner interface */
         }
 
         .btn-primary {
@@ -2021,18 +2017,42 @@
                     <button class="view-btn" onclick="switchView('month')">Month</button>
                     <button class="view-btn" onclick="switchView('list')">List</button>
                 </div>
-                <!-- Sync Status -->
-                <div id="syncStatus" class="sync-status" title="Sync status">
+                <!-- Sync Status (compact) -->
+                <div id="syncStatus" class="sync-status" title="Sync status" onclick="toggleAuth()" style="cursor: pointer;">
                     <span id="syncIcon">☁️</span>
-                    <span id="syncText">Local</span>
                 </div>
-                <!-- Auth Button -->
-                <button class="icon-btn" id="authBtn" onclick="toggleAuth()" title="Sign in for cloud sync">👤</button>
-                <button class="icon-btn" onclick="toggleCompactMode()" title="Toggle Compact Mode">📐</button>
-                <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
-                <button class="icon-btn" onclick="exportData()" title="Export Data">📤</button>
-                <button class="icon-btn" onclick="importData()" title="Import Data">📥</button>
-                <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+                <!-- Menu Button -->
+                <div style="position: relative;">
+                    <button class="icon-btn" id="menuBtn" onclick="toggleMenu()" title="Menu">☰</button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <button class="dropdown-item" onclick="toggleAuth(); toggleMenu();">
+                            <span id="authBtn">👤</span>
+                            <span id="authText">Sign In</span>
+                        </button>
+                        <button class="dropdown-item" onclick="toggleTheme(); toggleMenu();">
+                            <span>🌙</span>
+                            <span>Dark Mode</span>
+                        </button>
+                        <button class="dropdown-item" onclick="toggleCompactMode(); toggleMenu();">
+                            <span>📐</span>
+                            <span>Compact Mode</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" onclick="exportData(); toggleMenu();">
+                            <span>📤</span>
+                            <span>Export Data</span>
+                        </button>
+                        <button class="dropdown-item" onclick="importData(); toggleMenu();">
+                            <span>📥</span>
+                            <span>Import Data</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" onclick="showSettings(); toggleMenu();">
+                            <span>⚙️</span>
+                            <span>Settings</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2313,8 +2333,8 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div class="modal" id="addModal">
-        <div class="modal-content">
+    <div class="modal" id="addModal" onclick="if(event.target.id === 'addModal') closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h3 id="modalTitle">Add New Item</h3>
                 <button class="modal-close" onclick="closeModal()">×</button>
@@ -2322,12 +2342,12 @@
             <form id="itemForm">
                 <div class="form-group">
                     <label>Type</label>
-                    <select id="itemType" onchange="updateFormFields()">
-                        <option value="event">Event</option>
-                        <option value="task">Task</option>
-                        <option value="reminder">Reminder</option>
-                        <option value="planning">Planning/Goal</option>
-                        <option value="idea">Idea/Note</option>
+                    <select id="itemType" onchange="updateFormFields()" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                        <option value="event">📅 Event</option>
+                        <option value="task">✅ Task</option>
+                        <option value="reminder">🔔 Reminder</option>
+                        <option value="planning">📋 Planning/Goal</option>
+                        <option value="idea">💡 Idea/Note</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -2556,24 +2576,41 @@
         // Update Auth UI
         function updateAuthUI(user) {
             const authBtn = document.getElementById('authBtn');
+            const authText = document.getElementById('authText');
             const syncStatus = document.getElementById('syncStatus');
             const syncIcon = document.getElementById('syncIcon');
-            const syncText = document.getElementById('syncText');
 
             if (user) {
-                authBtn.textContent = '👋';
-                authBtn.title = `Signed in as ${user.email}. Click to sign out`;
+                if (authBtn) authBtn.textContent = '👋';
+                if (authText) authText.textContent = 'Sign Out';
                 syncIcon.textContent = '☁️';
-                syncText.textContent = 'Synced';
                 syncStatus.className = 'sync-status synced';
+                syncStatus.title = `Synced as ${user.email} - Click to sign out`;
             } else {
-                authBtn.textContent = '👤';
-                authBtn.title = 'Sign in for cloud sync';
+                if (authBtn) authBtn.textContent = '👤';
+                if (authText) authText.textContent = 'Sign In';
                 syncIcon.textContent = '💾';
-                syncText.textContent = 'Local';
                 syncStatus.className = 'sync-status';
+                syncStatus.title = 'Local storage - Click to sign in';
             }
         }
+
+        // Toggle Menu
+        function toggleMenu() {
+            const menu = document.getElementById('dropdownMenu');
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('dropdownMenu');
+            const menuBtn = document.getElementById('menuBtn');
+            if (menu && menuBtn && !menu.contains(e.target) && !menuBtn.contains(e.target)) {
+                menu.classList.remove('active');
+            }
+        });
 
         // Toggle Auth
         function toggleAuth() {
@@ -2627,7 +2664,7 @@
 
             const syncStatus = document.getElementById('syncStatus');
             syncStatus.className = 'sync-status syncing';
-            document.getElementById('syncText').textContent = 'Loading...';
+            // Loading state handled by sync icon
 
             const userRef = database.ref('users/' + currentUser.uid + '/data');
             userRef.once('value')
@@ -2644,12 +2681,12 @@
                         saveToFirebase();
                     }
                     syncStatus.className = 'sync-status synced';
-                    document.getElementById('syncText').textContent = 'Synced';
+                    // Synced state handled by updateAuthUI
                 })
                 .catch((error) => {
                     console.error('Firebase load error:', error);
                     syncStatus.className = 'sync-status error';
-                    document.getElementById('syncText').textContent = 'Error';
+                    // Error state handled by sync status class
                     showToast('Sync error: ' + error.message);
                 });
         }
@@ -2674,7 +2711,7 @@
                 .catch((error) => {
                     console.error('Firebase save error:', error);
                     syncStatus.className = 'sync-status error';
-                    document.getElementById('syncText').textContent = 'Error';
+                    // Error state handled by sync status class
                 });
         }
 
@@ -2750,7 +2787,7 @@
 
             const syncStatus = document.getElementById('syncStatus');
             syncStatus.className = 'sync-status syncing';
-            document.getElementById('syncText').textContent = 'Loading...';
+            // Loading state handled by sync icon
 
             try {
                 const { data: cloudData, error } = await supabaseClient
@@ -2774,7 +2811,6 @@
                 }
 
                 syncStatus.className = 'sync-status synced';
-                document.getElementById('syncText').textContent = 'Synced';
             } catch (error) {
                 console.error('Supabase load error:', error);
                 syncStatus.className = 'sync-status error';
