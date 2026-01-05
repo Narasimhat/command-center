@@ -959,6 +959,152 @@
             }
         }
 
+        /* Collapsible Sections */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .collapse-icon {
+            transition: transform 0.2s ease;
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .collapsed .collapsible-content {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        /* Show More/Less */
+        .show-more-container {
+            text-align: center;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .show-more-btn {
+            padding: 8px 20px;
+            background: var(--light);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            transition: all 0.2s ease;
+        }
+
+        .show-more-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .item-list.limited .item:nth-child(n+6) {
+            display: none;
+        }
+
+        .timeline.limited .timeline-item:nth-child(n+4) {
+            display: none;
+        }
+
+        /* Compact Mode */
+        body.compact-mode .card {
+            padding: 16px;
+        }
+
+        body.compact-mode .card-header {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+        }
+
+        body.compact-mode .card-header h2 {
+            font-size: 16px;
+        }
+
+        body.compact-mode .item {
+            padding: 10px 14px;
+        }
+
+        body.compact-mode .item-title {
+            font-size: 14px;
+        }
+
+        body.compact-mode .timeline-item {
+            padding: 14px;
+            margin-bottom: 16px;
+        }
+
+        body.compact-mode .today-section {
+            padding: 14px;
+        }
+
+        body.compact-mode .today-section .count {
+            font-size: 28px;
+        }
+
+        body.compact-mode .stat-value {
+            font-size: 20px;
+        }
+
+        body.compact-mode .container {
+            padding: 16px;
+        }
+
+        body.compact-mode .main-content {
+            gap: 16px;
+        }
+
+        /* Card Height Limits */
+        .card-content-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .card-content-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-content-scroll::-webkit-scrollbar-track {
+            background: var(--medium-gray);
+            border-radius: 3px;
+        }
+
+        .card-content-scroll::-webkit-scrollbar-thumb {
+            background: var(--dark-gray);
+            border-radius: 3px;
+        }
+
+        .card-content-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .week-calendar {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+        }
+
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -994,6 +1140,7 @@
                     <button class="view-btn" onclick="switchView('month')">Month</button>
                     <button class="view-btn" onclick="switchView('list')">List</button>
                 </div>
+                <button class="icon-btn" onclick="toggleCompactMode()" title="Toggle Compact Mode">📐</button>
                 <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
                 <button class="icon-btn" onclick="exportData()" title="Export Data">📤</button>
                 <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
@@ -1037,39 +1184,69 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
                             <h2>⏰ Today's Timeline</h2>
                         </div>
-                        <div class="timeline" id="todayTimeline"></div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>📝 Quick Tasks</h2>
-                            <button class="btn-sm" onclick="deleteCompletedTasks()">Clear Completed</button>
+                        <div class="collapsible-content">
+                            <div class="timeline limited" id="todayTimeline"></div>
+                            <div class="show-more-container" id="timelineShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('todayTimeline', this)">Show More</button>
+                            </div>
                         </div>
-                        <div id="todayTasks"></div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
+                            <h2>📝 Quick Tasks</h2>
+                            <button class="btn-sm" onclick="deleteCompletedTasks(); event.stopPropagation();">Clear Completed</button>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="todayTasks"></div>
+                            <div class="show-more-container" id="todayTasksShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('todayTasks', this)">Show More</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
                             <h2>📆 Upcoming Events</h2>
                         </div>
-                        <div id="upcomingEvents"></div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="upcomingEvents"></div>
+                            <div class="show-more-container" id="upcomingEventsShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('upcomingEvents', this)">Show More</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
                             <h2>✅ All Tasks & Reminders</h2>
                         </div>
-                        <div id="allTasks"></div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="allTasks"></div>
+                            <div class="show-more-container" id="allTasksShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('allTasks', this)">Show More</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
+                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
+                            <span class="collapse-icon">▼</span>
                             <h2>💡 Ideas & Notes</h2>
                         </div>
-                        <div id="ideasList"></div>
+                        <div class="collapsible-content">
+                            <div class="item-list limited" id="ideasList"></div>
+                            <div class="show-more-container" id="ideasListShowMore" style="display: none;">
+                                <button class="show-more-btn" onclick="toggleShowMore('ideasList', this)">Show More</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1605,6 +1782,9 @@
             }
             renderCategoryFilters();
             renderStats();
+            
+            // Update show more buttons after rendering
+            setTimeout(() => updateShowMoreButtons(), 100);
         }
 
         function renderToday() {
@@ -2201,7 +2381,65 @@
             }, 3000);
         }
 
+        // Collapsible sections
+        function toggleSection(headerElement) {
+            const card = headerElement.closest('.card');
+            card.classList.toggle('collapsed');
+        }
+
+        // Show more/less functionality
+        function toggleShowMore(listId, button) {
+            const list = document.getElementById(listId);
+            const isLimited = list.classList.contains('limited');
+            
+            if (isLimited) {
+                list.classList.remove('limited');
+                button.textContent = 'Show Less';
+            } else {
+                list.classList.add('limited');
+                button.textContent = 'Show More';
+            }
+        }
+
+        // Update show more buttons based on item count
+        function updateShowMoreButtons() {
+            const lists = [
+                { id: 'todayTimeline', showMoreId: 'timelineShowMore', limit: 3 },
+                { id: 'todayTasks', showMoreId: 'todayTasksShowMore', limit: 5 },
+                { id: 'upcomingEvents', showMoreId: 'upcomingEventsShowMore', limit: 5 },
+                { id: 'allTasks', showMoreId: 'allTasksShowMore', limit: 5 },
+                { id: 'ideasList', showMoreId: 'ideasListShowMore', limit: 5 }
+            ];
+
+            lists.forEach(({ id, showMoreId, limit }) => {
+                const list = document.getElementById(id);
+                const showMoreContainer = document.getElementById(showMoreId);
+                
+                if (list && showMoreContainer) {
+                    const itemCount = list.children.length;
+                    showMoreContainer.style.display = itemCount > limit ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Compact mode toggle
+        function toggleCompactMode() {
+            document.body.classList.toggle('compact-mode');
+            const isCompact = document.body.classList.contains('compact-mode');
+            localStorage.setItem('compactMode', isCompact);
+            showToast(isCompact ? 'Compact mode enabled' : 'Compact mode disabled');
+        }
+
+        // Load compact mode preference
+        function loadCompactMode() {
+            const isCompact = localStorage.getItem('compactMode') === 'true';
+            if (isCompact) {
+                document.body.classList.add('compact-mode');
+            }
+        }
+
         // Initialize on load
+        loadCompactMode();
         init();
     </script>
 </body>
