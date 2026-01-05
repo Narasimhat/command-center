@@ -2873,9 +2873,15 @@
                     if (signInError) {
                         // Account doesn't exist, create it
                         if (confirm('Account not found. Create a new account with this email?')) {
+                            // Get the current URL for redirect
+                            const redirectUrl = window.location.origin + window.location.pathname;
+                            
                             const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
                                 email: email,
-                                password: password
+                                password: password,
+                                options: {
+                                    emailRedirectTo: redirectUrl
+                                }
                             });
 
                             if (signUpError) {
@@ -3207,7 +3213,7 @@
             currentView = view;
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
             if (event && event.target) {
-                event.target.classList.add('active');
+            event.target.classList.add('active');
             }
             
             document.querySelectorAll('.view-content').forEach(v => v.style.display = 'none');
@@ -3578,7 +3584,7 @@
             if (weekTitleEl) {
                 weekTitleEl.textContent = `Week ${weekNum} - ${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
             }
-
+            
             weekCalendar.innerHTML = '';
             
             // Day columns
@@ -4773,7 +4779,7 @@
                 const frequency = document.getElementById('recurringFrequency').value;
                 const days = Array.from(document.querySelectorAll('#recurringOptions input[type="checkbox"]:checked'))
                     .map(cb => parseInt(cb.value));
-
+                
                 item.recurring = { frequency, days };
             }
 
