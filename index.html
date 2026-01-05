@@ -424,17 +424,36 @@
 
         .day-card {
             padding: 15px;
-            background: #f9fafb;
-            border-radius: 10px;
+            background: var(--light);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             min-height: 120px;
+            position: relative;
+        }
+
+        .day-card::after {
+            content: '+ Add';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            color: var(--primary);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            font-weight: 600;
         }
 
         .day-card:hover {
-            background: #f3f4f6;
+            background: var(--medium-gray);
+            border-color: var(--primary);
             transform: translateY(-5px);
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-md);
+        }
+
+        .day-card:hover::after {
+            opacity: 1;
         }
 
         .day-card.today {
@@ -491,18 +510,34 @@
         .month-day {
             aspect-ratio: 1;
             padding: 8px;
-            background: #f9fafb;
-            border-radius: 8px;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
         .month-day:hover {
-            background: #f3f4f6;
-            transform: scale(1.05);
+            background: var(--medium-gray);
+            border-color: var(--primary);
+            transform: scale(1.08);
+            box-shadow: var(--shadow-md);
+        }
+
+        .month-day:hover::before {
+            content: '+';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 16px;
+            color: var(--primary);
+            font-weight: 700;
         }
 
         .month-day.today {
@@ -1261,6 +1296,9 @@
                                 <button class="btn-sm" onclick="nextWeek()">→</button>
                             </div>
                         </div>
+                        <div style="text-align: center; color: var(--dark-gray); font-size: 13px; margin-bottom: 12px;">
+                            👆 Click any day to add an event or task
+                        </div>
                         <div class="week-calendar" id="weekCalendar"></div>
                     </div>
                 </div>
@@ -1275,6 +1313,9 @@
                                 <button class="btn-sm" onclick="goToCurrentMonth()">Today</button>
                                 <button class="btn-sm" onclick="nextMonth()">→</button>
                             </div>
+                        </div>
+                        <div style="text-align: center; color: var(--dark-gray); font-size: 13px; margin-bottom: 12px;">
+                            👆 Click any date to schedule an event
                         </div>
                         <div class="month-calendar" id="monthCalendar"></div>
                     </div>
@@ -1971,6 +2012,8 @@
                 
                 const dayCard = document.createElement('div');
                 dayCard.className = 'day-card' + (isToday ? ' today' : '');
+                dayCard.onclick = () => openAddModal(dateStr, 'event');
+                dayCard.style.cursor = 'pointer';
                 dayCard.innerHTML = `
                     <div class="day-name">${days[i]}</div>
                     <div class="day-num">${date.getDate()}</div>
@@ -2030,6 +2073,8 @@
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'month-day' + (isToday ? ' today' : '');
                 dayDiv.textContent = day;
+                dayDiv.onclick = () => openAddModal(dateStr, 'event');
+                dayDiv.style.cursor = 'pointer';
                 if (hasEvents) {
                     const dot = document.createElement('div');
                     dot.style.width = '6px';
@@ -2314,8 +2359,14 @@
         }
 
         // Modal
-        function openAddModal() {
+        function openAddModal(date = null, type = 'event') {
             document.getElementById('addModal').classList.add('active');
+            document.getElementById('itemType').value = type;
+            updateFormFields();
+            
+            if (date) {
+                document.getElementById('itemDate').value = date;
+            }
         }
 
         function closeModal() {
