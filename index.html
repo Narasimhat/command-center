@@ -1854,9 +1854,7 @@
             }
 
             .view-selector {
-                flex: 1;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+                display: none; /* Hide desktop tabs on mobile - use bottom nav instead */
             }
 
             .view-btn {
@@ -2138,30 +2136,32 @@
             <div class="main-content">
                 <!-- Today View -->
                 <div id="todayView" class="view-content">
+                    <!-- Consolidated Overview Card -->
                     <div class="card">
                         <div class="card-header">
-                            <h2>📊 Today's Overview</h2>
-                        </div>
-                        <div class="today-view">
-                            <div class="today-section">
-                                <h3>Events</h3>
-                                <div class="count" id="todayEventsCount">0</div>
-                            </div>
-                            <div class="today-section">
-                                <h3>Tasks Due</h3>
-                                <div class="count" id="todayTasksCount">0</div>
-                            </div>
-                            <div class="today-section">
-                                <h3>Completed</h3>
-                                <div class="count" id="todayCompletedCount">0</div>
+                            <h2>📊 Today</h2>
+                            <div class="today-view" style="display: flex; gap: 20px; margin-top: 10px;">
+                                <div class="today-section">
+                                    <div class="count" id="todayEventsCount">0</div>
+                                    <h3 style="font-size: 12px; margin: 5px 0 0 0; color: var(--dark-gray);">Events</h3>
+                                </div>
+                                <div class="today-section">
+                                    <div class="count" id="todayTasksCount">0</div>
+                                    <h3 style="font-size: 12px; margin: 5px 0 0 0; color: var(--dark-gray);">Tasks</h3>
+                                </div>
+                                <div class="today-section">
+                                    <div class="count" id="todayCompletedCount">0</div>
+                                    <h3 style="font-size: 12px; margin: 5px 0 0 0; color: var(--dark-gray);">Done</h3>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Consolidated Timeline (Events + Tasks) -->
                     <div class="card">
                         <div class="card-header collapsible-header" onclick="toggleSection(this)">
                             <span class="collapse-icon">▼</span>
-                            <h2>⏰ Today's Timeline</h2>
+                            <h2>⏰ Timeline</h2>
                         </div>
                         <div class="collapsible-content">
                             <div class="timeline limited" id="todayTimeline"></div>
@@ -2171,11 +2171,12 @@
                         </div>
                     </div>
 
+                    <!-- Consolidated Tasks (All tasks in one place) -->
                     <div class="card">
                         <div class="card-header collapsible-header" onclick="toggleSection(this)">
                             <span class="collapse-icon">▼</span>
-                            <h2>📝 Quick Tasks</h2>
-                            <button class="btn-sm" onclick="deleteCompletedTasks(); event.stopPropagation();">Clear Completed</button>
+                            <h2>📝 Tasks</h2>
+                            <button class="btn-sm" onclick="deleteCompletedTasks(); event.stopPropagation();">Clear Done</button>
                         </div>
                         <div class="collapsible-content">
                             <div class="item-list limited" id="todayTasks"></div>
@@ -2185,69 +2186,27 @@
                         </div>
                     </div>
 
+                    <!-- Consolidated Notes (Ideas, Reminders, Planning) -->
                     <div class="card">
                         <div class="card-header collapsible-header" onclick="toggleSection(this)">
                             <span class="collapse-icon">▼</span>
-                            <h2>📆 Upcoming Events</h2>
+                            <h2>📋 Notes & Ideas</h2>
+                            <button class="btn-sm" onclick="openAddModal(null, 'idea'); event.stopPropagation();">+ Add</button>
                         </div>
                         <div class="collapsible-content">
-                            <div class="item-list limited" id="upcomingEvents"></div>
-                            <div class="show-more-container" id="upcomingEventsShowMore" style="display: none;">
-                                <button class="show-more-btn" onclick="toggleShowMore('upcomingEvents', this)">Show More</button>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <h3 style="font-size: 13px; color: var(--dark-gray); margin-bottom: 8px;">💡 Ideas</h3>
+                                    <div class="item-list limited" id="ideasList" style="max-height: 200px; overflow-y: auto;"></div>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 13px; color: var(--dark-gray); margin-bottom: 8px;">🔔 Reminders</h3>
+                                    <div class="item-list limited" id="remindersList" style="max-height: 200px; overflow-y: auto;"></div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
-                            <span class="collapse-icon">▼</span>
-                            <h2>✅ All Tasks & Reminders</h2>
-                        </div>
-                        <div class="collapsible-content">
-                            <div class="item-list limited" id="allTasks"></div>
-                            <div class="show-more-container" id="allTasksShowMore" style="display: none;">
-                                <button class="show-more-btn" onclick="toggleShowMore('allTasks', this)">Show More</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
-                            <span class="collapse-icon">▼</span>
-                            <h2>🔔 Reminders</h2>
-                            <button class="btn-sm" onclick="openAddModal(null, 'reminder'); event.stopPropagation();">+ Add</button>
-                        </div>
-                        <div class="collapsible-content">
-                            <div class="item-list limited" id="remindersList"></div>
-                            <div class="show-more-container" id="remindersListShowMore" style="display: none;">
-                                <button class="show-more-btn" onclick="toggleShowMore('remindersList', this)">Show More</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
-                            <span class="collapse-icon">▼</span>
-                            <h2>📋 Planning & Goals</h2>
-                            <button class="btn-sm" onclick="openAddModal(null, 'planning'); event.stopPropagation();">+ Add</button>
-                        </div>
-                        <div class="collapsible-content">
-                            <div class="item-list limited" id="planningList"></div>
-                            <div class="show-more-container" id="planningListShowMore" style="display: none;">
-                                <button class="show-more-btn" onclick="toggleShowMore('planningList', this)">Show More</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header collapsible-header" onclick="toggleSection(this)">
-                            <span class="collapse-icon">▼</span>
-                            <h2>💡 Ideas & Notes</h2>
-                        </div>
-                        <div class="collapsible-content">
-                            <div class="item-list limited" id="ideasList"></div>
-                            <div class="show-more-container" id="ideasListShowMore" style="display: none;">
-                                <button class="show-more-btn" onclick="toggleShowMore('ideasList', this)">Show More</button>
+                            <div>
+                                <h3 style="font-size: 13px; color: var(--dark-gray); margin-bottom: 8px;">📋 Planning</h3>
+                                <div class="item-list limited" id="planningList" style="max-height: 150px; overflow-y: auto;"></div>
                             </div>
                         </div>
                     </div>
@@ -2326,29 +2285,6 @@
                                 <div class="filter-tag" onclick="toggleFilter('priority', 'medium')">Medium</div>
                                 <div class="filter-tag" onclick="toggleFilter('priority', 'low')">Low</div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stats -->
-                <div class="card">
-                    <h2 style="color: var(--primary); font-size: 16px; margin-bottom: 15px;">Statistics</h2>
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-value" id="statTotalEvents">0</div>
-                            <div class="stat-label">Events</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="statTotalTasks">0</div>
-                            <div class="stat-label">Tasks</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="statCompletedTasks">0</div>
-                            <div class="stat-label">Completed</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="stat-value" id="statIdeas">0</div>
-                            <div class="stat-label">Ideas</div>
                         </div>
                     </div>
                 </div>
@@ -4017,19 +3953,9 @@
             // Render tasks
             renderTaskList('todayTasks', todayTasks);
             
-            // Render upcoming events (next 7 days)
-            renderUpcomingEvents();
-            
-            // Render all tasks
-            renderAllTasks();
-            
-            // Render reminders
+            // Render reminders, planning, and ideas (consolidated in Notes section)
             renderReminders();
-            
-            // Render planning
             renderPlanning();
-            
-            // Render ideas
             renderIdeas();
         }
 
@@ -4847,12 +4773,9 @@
             ).join('');
         }
 
+        // Stats removed - consolidated into Today's Overview
         function renderStats() {
-            const expandedEvents = getExpandedEvents();
-            document.getElementById('statTotalEvents').textContent = expandedEvents.length;
-            document.getElementById('statTotalTasks').textContent = data.tasks.length;
-            document.getElementById('statCompletedTasks').textContent = data.tasks.filter(t => t.completed).length;
-            document.getElementById('statIdeas').textContent = data.ideas.length;
+            // Stats section removed to reduce duplication
         }
 
         // Recurring Events
