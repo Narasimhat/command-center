@@ -2973,8 +2973,28 @@
                 .then((snapshot) => {
                     const cloudData = snapshot.val();
                     if (cloudData) {
-                        // Merge with local data (cloud takes precedence)
-                        data = { ...data, ...cloudData };
+                        // Smart merge: preserve recent local changes
+                        const localDataStr = localStorage.getItem('commandCenterProData');
+                        const localSaveTime = localStorage.getItem('lastSaveTime');
+                        
+                        if (localDataStr && localSaveTime && Date.now() - parseInt(localSaveTime) < 5000) {
+                            // Recent local save - prefer local arrays
+                            try {
+                                const localData = JSON.parse(localDataStr);
+                                data = { 
+                                    ...cloudData,
+                                    events: localData.events || cloudData.events || [],
+                                    tasks: localData.tasks || cloudData.tasks || [],
+                                    ideas: localData.ideas || cloudData.ideas || [],
+                                    settings: { ...cloudData.settings, ...localData.settings }
+                                };
+                            } catch (e) {
+                                data = { ...data, ...cloudData };
+                            }
+                        } else {
+                            // Merge with local data (cloud takes precedence)
+                            data = { ...data, ...cloudData };
+                        }
                         localStorage.setItem('commandCenterProData', JSON.stringify(data));
                         
                         // Sync API key from cloud to localStorage for backward compatibility
@@ -3132,7 +3152,33 @@
                 }
 
                 if (cloudData?.data) {
-                    data = { ...data, ...cloudData.data };
+                    // Smart merge: preserve local deletions by checking localStorage first
+                    const localDataStr = localStorage.getItem('commandCenterProData');
+                    if (localDataStr) {
+                        try {
+                            const localData = JSON.parse(localDataStr);
+                            // Merge arrays intelligently - keep items that exist in either, but prefer local if it's newer
+                            // For now, use cloud data but merge settings from local
+                            data = { 
+                                ...cloudData.data,
+                                settings: { ...cloudData.data.settings, ...localData.settings }
+                            };
+                            // If local data was saved more recently (within last 5 seconds), prefer it for arrays
+                            // This handles the case where user just deleted something
+                            const localSaveTime = localStorage.getItem('lastSaveTime');
+                            if (localSaveTime && Date.now() - parseInt(localSaveTime) < 5000) {
+                                // Recent local save - merge arrays from local
+                                data.events = localData.events || cloudData.data.events || [];
+                                data.tasks = localData.tasks || cloudData.data.tasks || [];
+                                data.ideas = localData.ideas || cloudData.data.ideas || [];
+                            }
+                        } catch (e) {
+                            // Fallback to cloud data if local parse fails
+                            data = { ...data, ...cloudData.data };
+                        }
+                    } else {
+                        data = { ...data, ...cloudData.data };
+                    }
                     localStorage.setItem('commandCenterProData', JSON.stringify(data));
                     
                     // Sync API key from cloud to localStorage for backward compatibility
@@ -3217,17 +3263,25 @@
                             const cloudDataStr = JSON.stringify(cloudData);
 
                             if (localDataStr !== cloudDataStr) {
-                                data = cloudData;
-                                localStorage.setItem('commandCenterProData', JSON.stringify(data));
-                                
-                                // Sync API key from cloud to localStorage for backward compatibility
-                                if (data.settings?.openaiApiKey) {
-                                    localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                                // Check if local save was recent (within 5 seconds) - if so, prefer local
+                                const localSaveTime = localStorage.getItem('lastSaveTime');
+                                if (localSaveTime && Date.now() - parseInt(localSaveTime) < 5000) {
+                                    // Recent local save - upload local to cloud instead
+                                    saveToSupabase();
+                                } else {
+                                    // Use cloud data
+                                    data = cloudData;
+                                    localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                                    
+                                    // Sync API key from cloud to localStorage for backward compatibility
+                                    if (data.settings?.openaiApiKey) {
+                                        localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                                    }
+                                    
+                                    renderAll();
+                                    updateAIAssistantButton();
+                                    showToast('Synced from another device');
                                 }
-                                
-                                renderAll();
-                                updateAIAssistantButton();
-                                showToast('Synced from another device');
                             }
                         }
                     }
@@ -3536,18 +3590,19 @@
         let cloudSyncEnabled = false;
         let userId = null; // User identifier for sync
 
-        function saveData() {
+        async function saveData() {
             // Always save to localStorage first
             localStorage.setItem('commandCenterProData', JSON.stringify(data));
+            localStorage.setItem('lastSaveTime', Date.now().toString()); // Track save time
             renderAll();
 
             // Save to Supabase if enabled (takes precedence over Firebase)
             if (supabaseSyncEnabled && supabaseUser) {
-                saveToSupabase();
+                await saveToSupabase();
             }
             // Fall back to Firebase if enabled and user is signed in
             else if (syncEnabled && currentUser) {
-                saveToFirebase();
+                saveToFirebase(); // Firebase save is not async, but we could make it async if needed
             }
         }
 
@@ -4846,7 +4901,7 @@
             }
         }
 
-        function deleteItem(type, id) {
+        async function deleteItem(type, id) {
             if (confirm('Delete this item?')) {
                 if (type === 'event') {
                     data.events = data.events.filter(e => e.id !== id);
@@ -4861,7 +4916,7 @@
                     if (!data.planning) data.planning = [];
                     data.planning = data.planning.filter(p => p.id !== id);
                 }
-                saveData();
+                await saveData();
                 showToast('Item deleted');
             }
         }
