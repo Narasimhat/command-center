@@ -2445,7 +2445,102 @@
                             <button type="button" class="time-preset-btn" onclick="setQuickTime('21:00')">9 PM</button>
                         </div>
                         <div id="startTimePicker" class="time-picker-dropdown" style="display: none;">
-                            <!-- Time picker removed - use presets or type directly -->
+                            <div class="time-picker-grid">
+                                <div class="time-picker-section">
+                                    <div class="time-picker-label">Hour</div>
+                                    <div class="time-picker-hours">
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '00', null)">00</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '01', null)">01</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '02', null)">02</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '03', null)">03</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '04', null)">04</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '05', null)">05</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '06', null)">06</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '07', null)">07</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '08', null)">08</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '09', null)">09</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '10', null)">10</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '11', null)">11</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '12', null)">12</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '13', null)">13</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '14', null)">14</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '15', null)">15</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '16', null)">16</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '17', null)">17</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '18', null)">18</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '19', null)">19</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '20', null)">20</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '21', null)">21</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '22', null)">22</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', '23', null)">23</button>
+                                    </div>
+                                </div>
+                                <div class="time-picker-section">
+                                    <div class="time-picker-label">Minute</div>
+                                    <div class="time-picker-minutes">
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '00')">00</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '01')">01</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '02')">02</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '03')">03</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '04')">04</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '05')">05</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '06')">06</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '07')">07</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '08')">08</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '09')">09</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '10')">10</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '11')">11</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '12')">12</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '13')">13</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '14')">14</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '15')">15</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '16')">16</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '17')">17</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '18')">18</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '19')">19</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '20')">20</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '21')">21</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '22')">22</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '23')">23</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '24')">24</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '25')">25</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '26')">26</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '27')">27</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '28')">28</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '29')">29</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '30')">30</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '31')">31</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '32')">32</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '33')">33</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '34')">34</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '35')">35</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '36')">36</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '37')">37</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '38')">38</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '39')">39</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '40')">40</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '41')">41</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '42')">42</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '43')">43</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '44')">44</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '45')">45</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '46')">46</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '47')">47</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '48')">48</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '49')">49</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '50')">50</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '51')">51</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '52')">52</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '53')">53</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '54')">54</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '55')">55</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '56')">56</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '57')">57</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '58')">58</button>
+                                        <button type="button" class="time-pick-btn" onclick="selectTime('start', null, '59')">59</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2460,7 +2555,102 @@
                         <button type="button" class="duration-preset-btn" onclick="setQuickDuration(120)">2 hours</button>
                     </div>
                     <div id="endTimePicker" class="time-picker-dropdown" style="display: none;">
-                        <!-- Time picker removed - use presets or type directly -->
+                        <div class="time-picker-grid">
+                            <div class="time-picker-section">
+                                <div class="time-picker-label">Hour</div>
+                                <div class="time-picker-hours">
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '00', null)">00</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '01', null)">01</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '02', null)">02</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '03', null)">03</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '04', null)">04</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '05', null)">05</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '06', null)">06</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '07', null)">07</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '08', null)">08</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '09', null)">09</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '10', null)">10</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '11', null)">11</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '12', null)">12</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '13', null)">13</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '14', null)">14</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '15', null)">15</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '16', null)">16</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '17', null)">17</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '18', null)">18</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '19', null)">19</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '20', null)">20</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '21', null)">21</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '22', null)">22</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', '23', null)">23</button>
+                                </div>
+                            </div>
+                            <div class="time-picker-section">
+                                <div class="time-picker-label">Minute</div>
+                                <div class="time-picker-minutes">
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '00')">00</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '01')">01</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '02')">02</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '03')">03</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '04')">04</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '05')">05</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '06')">06</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '07')">07</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '08')">08</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '09')">09</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '10')">10</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '11')">11</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '12')">12</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '13')">13</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '14')">14</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '15')">15</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '16')">16</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '17')">17</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '18')">18</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '19')">19</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '20')">20</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '21')">21</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '22')">22</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '23')">23</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '24')">24</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '25')">25</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '26')">26</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '27')">27</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '28')">28</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '29')">29</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '30')">30</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '31')">31</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '32')">32</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '33')">33</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '34')">34</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '35')">35</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '36')">36</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '37')">37</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '38')">38</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '39')">39</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '40')">40</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '41')">41</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '42')">42</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '43')">43</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '44')">44</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '45')">45</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '46')">46</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '47')">47</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '48')">48</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '49')">49</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '50')">50</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '51')">51</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '52')">52</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '53')">53</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '54')">54</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '55')">55</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '56')">56</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '57')">57</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '58')">58</button>
+                                    <button type="button" class="time-pick-btn" onclick="selectTime('end', null, '59')">59</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" id="descriptionGroup">
@@ -2774,7 +2964,14 @@
                         // Merge with local data (cloud takes precedence)
                         data = { ...data, ...cloudData };
                         localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                        
+                        // Sync API key from cloud to localStorage for backward compatibility
+                        if (data.settings?.openaiApiKey) {
+                            localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                        }
+                        
                         renderAll();
+                        updateAIAssistantButton();
                         showToast('Data loaded from cloud');
                     } else {
                         // No cloud data, upload local data
@@ -2798,6 +2995,15 @@
             const syncStatus = document.getElementById('syncStatus');
             const originalClass = syncStatus.className;
             syncStatus.className = 'sync-status syncing';
+
+            // Migrate API key from localStorage to cloud data if it exists
+            const localApiKey = localStorage.getItem('openaiApiKey');
+            if (localApiKey && (!data.settings || !data.settings.openaiApiKey)) {
+                if (!data.settings) {
+                    data.settings = {};
+                }
+                data.settings.openaiApiKey = localApiKey;
+            }
 
             const userRef = database.ref('users/' + currentUser.uid + '/data');
             userRef.set(data)
@@ -2830,7 +3036,14 @@
                     if (localDataStr !== cloudDataStr) {
                         data = cloudData;
                         localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                        
+                        // Sync API key from cloud to localStorage for backward compatibility
+                        if (data.settings?.openaiApiKey) {
+                            localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                        }
+                        
                         renderAll();
+                        updateAIAssistantButton();
                         showToast('Synced from another device');
                     }
                 }
@@ -2903,7 +3116,14 @@
                 if (cloudData?.data) {
                     data = { ...data, ...cloudData.data };
                     localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                    
+                    // Sync API key from cloud to localStorage for backward compatibility
+                    if (data.settings?.openaiApiKey) {
+                        localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                    }
+                    
                     renderAll();
+                    updateAIAssistantButton();
                     showToast('Data loaded from cloud');
                 } else {
                     // No cloud data, upload local data
@@ -2925,6 +3145,15 @@
 
             const syncStatus = document.getElementById('syncStatus');
             syncStatus.className = 'sync-status syncing';
+
+            // Migrate API key from localStorage to cloud data if it exists
+            const localApiKey = localStorage.getItem('openaiApiKey');
+            if (localApiKey && (!data.settings || !data.settings.openaiApiKey)) {
+                if (!data.settings) {
+                    data.settings = {};
+                }
+                data.settings.openaiApiKey = localApiKey;
+            }
 
             try {
                 const { error } = await supabaseClient
@@ -2972,7 +3201,14 @@
                             if (localDataStr !== cloudDataStr) {
                                 data = cloudData;
                                 localStorage.setItem('commandCenterProData', JSON.stringify(data));
+                                
+                                // Sync API key from cloud to localStorage for backward compatibility
+                                if (data.settings?.openaiApiKey) {
+                                    localStorage.setItem('openaiApiKey', data.settings.openaiApiKey);
+                                }
+                                
                                 renderAll();
+                                updateAIAssistantButton();
                                 showToast('Synced from another device');
                             }
                         }
@@ -5129,9 +5365,10 @@
                         <p style="color: var(--dark-gray); font-size: 14px; margin-bottom: 15px;">
                             Enable AI-powered natural language processing, smart suggestions, and intelligent task categorization.
                         </p>
-                        ${localStorage.getItem('openaiApiKey') ? `
+                        ${getOpenAIKey() ? `
                             <div style="padding: 10px; background: var(--success-light); border-radius: var(--radius-sm); margin-bottom: 10px;">
                                 ✅ OpenAI API key is configured
+                                ${(syncEnabled && currentUser) || (supabaseSyncEnabled && supabaseUser) ? '<br><small>🔄 Synced across all browsers</small>' : ''}
                             </div>
                             <button class="btn-sm" onclick="clearOpenAIKey(); closeSettingsModal();" style="background: var(--danger-light); color: var(--danger);">Remove API Key</button>
                         ` : `
@@ -5140,6 +5377,7 @@
                                 <input type="password" id="openaiApiKeyInput" placeholder="sk-..." style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);" />
                                 <p style="font-size: 12px; color: var(--dark-gray); margin-top: 5px;">
                                     Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>
+                                    ${(syncEnabled && currentUser) || (supabaseSyncEnabled && supabaseUser) ? '<br>💡 <strong>Tip:</strong> Your API key will sync across all browsers when cloud sync is enabled.' : ''}
                                 </p>
                             </div>
                             <button class="btn-primary" onclick="saveOpenAIKey(); closeSettingsModal();">Save API Key</button>
@@ -5301,8 +5539,24 @@
                 showToast('Invalid API key format. Should start with "sk-"');
                 return;
             }
+            
+            // Save to localStorage (for backward compatibility and offline use)
             localStorage.setItem('openaiApiKey', apiKey);
-            showToast('OpenAI API key saved successfully!');
+            
+            // Also save to cloud data if sync is enabled
+            if (!data.settings) {
+                data.settings = {};
+            }
+            data.settings.openaiApiKey = apiKey;
+            
+            // Sync to cloud if enabled
+            if (syncEnabled && currentUser) {
+                saveToFirebase();
+            } else if (supabaseSyncEnabled && supabaseUser) {
+                saveToSupabase();
+            }
+            
+            showToast('OpenAI API key saved successfully! ' + (syncEnabled || supabaseSyncEnabled ? 'Synced across all browsers.' : ''));
             updateAIAssistantButton();
             // Refresh settings modal to show updated status
             setTimeout(() => {
@@ -5316,6 +5570,19 @@
         function clearOpenAIKey() {
             if (confirm('Are you sure you want to remove your OpenAI API key?')) {
                 localStorage.removeItem('openaiApiKey');
+                
+                // Also remove from cloud data
+                if (data.settings) {
+                    delete data.settings.openaiApiKey;
+                }
+                
+                // Sync to cloud if enabled
+                if (syncEnabled && currentUser) {
+                    saveToFirebase();
+                } else if (supabaseSyncEnabled && supabaseUser) {
+                    saveToSupabase();
+                }
+                
                 showToast('OpenAI API key removed');
                 updateAIAssistantButton();
                 closeAIAssistant();
@@ -5336,6 +5603,14 @@
         }
 
         function getOpenAIKey() {
+            // First check if cloud sync is enabled and has the key
+            if (syncEnabled && currentUser && data?.settings?.openaiApiKey) {
+                return data.settings.openaiApiKey;
+            }
+            if (supabaseSyncEnabled && supabaseUser && data?.settings?.openaiApiKey) {
+                return data.settings.openaiApiKey;
+            }
+            // Fall back to localStorage
             return localStorage.getItem('openaiApiKey');
         }
 
