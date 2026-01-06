@@ -2792,12 +2792,13 @@
                     <div class="ai-content">
                         <p>Hello! I'm your AI assistant. I can help you:</p>
                         <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li><strong>Create schedules</strong> - Just say "add a meeting for next Monday at 2pm"</li>
                             <li>Parse natural language into tasks and events</li>
                             <li>Suggest actions based on your calendar</li>
                             <li>Answer questions about your schedule</li>
                             <li>Help organize and prioritize tasks</li>
                         </ul>
-                        <p style="margin-top: 10px;">Ask me anything!</p>
+                        <p style="margin-top: 10px;"><strong>Try it:</strong> "Add a meeting for next week Monday at 2pm" or "Schedule a doctor appointment tomorrow at 10am"</p>
                     </div>
                 </div>
             </div>
@@ -5796,6 +5797,42 @@ Return a JSON array of suggestions: ["suggestion 1", "suggestion 2", ...]`;
             const loadingId = addAIMessage('assistant', 'Thinking...', true);
 
             try {
+                // Check if user wants to create/add something (schedule, event, task, etc.)
+                const lowerMessage = message.toLowerCase();
+                const isCreateRequest = /(add|create|schedule|set|book|plan|put|make).*(meeting|event|appointment|task|reminder|todo)/i.test(message) ||
+                                       /(meeting|event|appointment).*(next|on|for|at|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(message);
+                
+                if (isCreateRequest) {
+                    // Try to parse and create the item
+                    const parsed = await parseNaturalInputWithAI(message);
+                    if (parsed && (parsed.type === 'event' || parsed.type === 'task' || parsed.type === 'reminder')) {
+                        removeAIMessage(loadingId);
+                        
+                        // Create the item
+                        if (parsed.type === 'event') {
+                            data.events.push(parsed);
+                        } else if (parsed.type === 'task') {
+                            data.tasks.push(parsed);
+                        } else if (parsed.type === 'reminder') {
+                            if (!data.reminders) data.reminders = [];
+                            data.reminders.push(parsed);
+                        }
+                        
+                        saveData();
+                        renderAll();
+                        
+                        // Format confirmation message
+                        const dateStr = parsed.date ? new Date(parsed.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : 'No date';
+                        const timeStr = parsed.time ? (parsed.endTime ? `${parsed.time} - ${parsed.endTime}` : parsed.time) : 'No time';
+                        const confirmMsg = `✅ Created ${parsed.type}: "${parsed.title}"\n📅 ${dateStr}\n🕐 ${timeStr}`;
+                        
+                        addAIMessage('assistant', confirmMsg);
+                        showToast(`${parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1)} added!`);
+                        return;
+                    }
+                }
+                
+                // Regular conversation - provide context and answer
                 const today = new Date();
                 const todayStr = today.toISOString().split('T')[0];
                 const upcomingEvents = data.events.filter(e => {
@@ -5808,8 +5845,12 @@ Return a JSON array of suggestions: ["suggestion 1", "suggestion 2", ...]`;
 Upcoming events: ${upcomingEvents.map(e => `${e.title} on ${e.date}${e.time ? ' at ' + e.time : ''}`).join(', ') || 'None'}
 Pending tasks: ${pendingTasks.map(t => t.title).join(', ') || 'None'}`;
 
+                const systemPrompt = `You are a helpful productivity assistant for a calendar and task management app. Help users manage their schedule, tasks, and provide intelligent suggestions. Be concise and actionable.
+
+If the user wants to create or add something (meeting, event, task, etc.), you can tell them to use phrases like "add a meeting for next Monday at 2pm" and I'll create it automatically.`;
+
                 const response = await callOpenAI([
-                    { role: 'system', content: 'You are a helpful productivity assistant for a calendar and task management app. Help users manage their schedule, tasks, and provide intelligent suggestions. Be concise and actionable.' },
+                    { role: 'system', content: systemPrompt },
                     { role: 'user', content: `${context}\n\nUser question: ${message}` }
                 ]);
 
