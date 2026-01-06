@@ -3070,6 +3070,7 @@
                 supabaseClient = supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey);
                 supabaseSyncEnabled = true;
                 console.log('Supabase initialized successfully');
+                console.log('Supabase URL:', supabaseConfig.url);
 
                 // Listen for auth changes
                 supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -3084,9 +3085,14 @@
                 });
 
                 // Check current session
-                supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                supabaseClient.auth.getSession().then(({ data: { session }, error }) => {
+                    if (error) {
+                        console.error('Error getting session:', error);
+                    }
                     supabaseUser = session?.user || null;
                     updateAuthUI(supabaseUser);
+                }).catch((error) => {
+                    console.error('Session check failed:', error);
                 });
             }
         } catch (error) {
@@ -3221,7 +3227,7 @@
         const originalToggleAuth = toggleAuth;
         toggleAuth = async function() {
             // Use Supabase if enabled, otherwise fall back to Firebase
-            if (supabaseSyncEnabled) {
+            if (supabaseSyncEnabled && supabaseClient) {
                 if (supabaseUser) {
                     // Sign out
                     if (confirm('Sign out? Your data will remain in the cloud but not sync until you sign back in.')) {
@@ -3243,24 +3249,39 @@
                     });
 
                     if (signInError) {
-                        // Account doesn't exist, create it
-                        if (confirm('Account not found. Create a new account with this email?')) {
-                            // Get the current URL for redirect
-                            const redirectUrl = window.location.origin + window.location.pathname;
-                            
-                            const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
-                                email: email,
-                                password: password,
-                                options: {
-                                    emailRedirectTo: redirectUrl
-                                }
-                            });
-
-                            if (signUpError) {
-                                showToast('Error: ' + signUpError.message);
+                        console.error('Sign in error:', signInError);
+                        
+                        // Check specific error types
+                        if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
+                            // Account might exist but not confirmed, or wrong password
+                            if (signInError.message.includes('Email not confirmed')) {
+                                showToast('Please check your email and click the confirmation link first.');
                             } else {
-                                showToast('Account created! Check your email to verify, then sign in.');
+                                // Account doesn't exist or wrong password, offer to create
+                                if (confirm('Account not found or password incorrect. Create a new account with this email?')) {
+                                    // Get the current URL for redirect
+                                    const redirectUrl = window.location.origin + window.location.pathname;
+                                    
+                                    const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+                                        email: email,
+                                        password: password,
+                                        options: {
+                                            emailRedirectTo: redirectUrl
+                                        }
+                                    });
+
+                                    if (signUpError) {
+                                        console.error('Sign up error:', signUpError);
+                                        showToast('Error: ' + signUpError.message + ' (Check browser console for details)');
+                                    } else {
+                                        showToast('Account created! Check your email to verify, then sign in.');
+                                    }
+                                }
                             }
+                        } else {
+                            // Other errors (network, CORS, etc.)
+                            showToast('Error: ' + signInError.message + ' (Check browser console F12 for details)');
+                            console.error('Full error:', signInError);
                         }
                     } else {
                         showToast('Signed in successfully!');
