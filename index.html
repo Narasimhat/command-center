@@ -2764,6 +2764,7 @@
                         <p>Hello! I'm your personal AI assistant. I can help you with:</p>
                         <ul style="margin: 10px 0; padding-left: 20px;">
                             <li><strong>📅 Create schedules</strong> - "Add a meeting for next Monday at 2pm"</li>
+                            <li><strong>🔄 Recurring meetings</strong> - "Schedule a weekly team standup every Monday at 9am"</li>
                             <li><strong>❌ Delete events</strong> - "Cancel my Monday meeting"</li>
                             <li><strong>🔄 Reschedule</strong> - "Move Monday's meeting to Tuesday"</li>
                             <li><strong>❓ Query calendar</strong> - "What meetings do I have this week?"</li>
@@ -5704,18 +5705,28 @@
                 const prompt = `Parse this natural language input into a structured task/event/reminder/planning/idea. Return ONLY valid JSON with this exact structure:
 {
   "type": "event|task|reminder|planning|idea",
-  "title": "cleaned title without dates/times",
-  "date": "YYYY-MM-DD or null",
+  "title": "cleaned title without dates/times/recurring words",
+  "date": "YYYY-MM-DD or null (use the first occurrence date for recurring events)",
   "time": "HH:MM or null",
   "endTime": "HH:MM or null",
   "category": "work|personal|health|meeting|research|other",
   "priority": "high|medium|low",
-  "recurring": true|false
+  "recurring": {
+    "frequency": "daily|weekly|monthly or null",
+    "days": [0,1,2,3,4,5,6] or null (0=Sunday, 1=Monday, etc. Only for weekly)
+  } or null
 }
+
+Examples:
+- "Meeting every Monday at 2pm" → recurring: {frequency: "weekly", days: [1]}
+- "Team standup every day at 9am" → recurring: {frequency: "daily", days: null}
+- "Monthly review on the 15th" → recurring: {frequency: "monthly", days: null}
+- "Meeting next Monday" → recurring: null
 
 Input: "${input}"
 
 Today's date: ${new Date().toISOString().split('T')[0]}
+Today is: ${new Date().toLocaleDateString('en-US', { weekday: 'long' })}
 
 Return ONLY the JSON, no other text.`;
 
@@ -5734,6 +5745,33 @@ Return ONLY the JSON, no other text.`;
                     if (parsed.type === 'task') {
                         parsed.completed = false;
                     }
+                    
+                    // Handle recurring events - convert to proper format
+                    if (parsed.type === 'event' && parsed.recurring) {
+                        if (typeof parsed.recurring === 'boolean') {
+                            // Old format - convert to new format
+                            if (parsed.recurring && parsed.date) {
+                                const eventDate = new Date(parsed.date);
+                                parsed.recurring = {
+                                    frequency: 'weekly',
+                                    days: [eventDate.getDay()]
+                                };
+                            } else {
+                                parsed.recurring = null;
+                            }
+                        } else if (parsed.recurring.frequency) {
+                            // New format - ensure days array is correct
+                            if (parsed.recurring.frequency === 'weekly' && !parsed.recurring.days && parsed.date) {
+                                const eventDate = new Date(parsed.date);
+                                parsed.recurring.days = [eventDate.getDay()];
+                            } else if (parsed.recurring.frequency !== 'weekly') {
+                                parsed.recurring.days = null;
+                            }
+                        }
+                    } else if (parsed.type === 'event' && !parsed.recurring) {
+                        parsed.recurring = null;
+                    }
+                    
                     return parsed;
                 }
             } catch (error) {
@@ -6224,7 +6262,19 @@ User request: "${message}"`;
                         
                         const dateStr = parsed.date ? new Date(parsed.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : 'No date';
                         const timeStr = parsed.time ? (parsed.endTime ? `${parsed.time} - ${parsed.endTime}` : parsed.time) : 'No time';
-                        const confirmMsg = `✅ Created ${parsed.type}: "${parsed.title}"\n📅 ${dateStr}\n🕐 ${timeStr}`;
+                        let recurringStr = '';
+                        if (parsed.recurring && parsed.recurring.frequency) {
+                            if (parsed.recurring.frequency === 'daily') {
+                                recurringStr = '\n🔄 Recurring: Daily';
+                            } else if (parsed.recurring.frequency === 'weekly' && parsed.recurring.days) {
+                                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                const days = parsed.recurring.days.map(d => dayNames[d]).join(', ');
+                                recurringStr = `\n🔄 Recurring: Every ${days}`;
+                            } else if (parsed.recurring.frequency === 'monthly') {
+                                recurringStr = '\n🔄 Recurring: Monthly';
+                            }
+                        }
+                        const confirmMsg = `✅ Created ${parsed.type}: "${parsed.title}"\n📅 ${dateStr}\n🕐 ${timeStr}${recurringStr}`;
                         
                         removeAIMessage(loadingId);
                         addAIMessage('assistant', confirmMsg);
